@@ -57,6 +57,12 @@ export class AppConfigService {
     return this.config.get<number>('PORT', 3000);
   }
 
+  get manualProcessing(): boolean {
+    return (
+      this.config.get<string>('MESSAGE_PROCESSING_MODE', 'manual') === 'manual'
+    );
+  }
+
   get nodeEnv(): string {
     return this.config.get<string>('NODE_ENV', 'development');
   }

@@ -1,3 +1,4 @@
+import { MessageActions } from '../../messages/components/MessageActions';
 import { ColumnDef, Row } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "../../../components/data-table/DataTableColumnHeader";
 import { Button } from "../../../components/ui/button";
@@ -151,6 +152,7 @@ export const createColumns = (
     cell: ({ row }) => {
       return (
         <div className="flex gap-1">
+          <MessageActions message={row.original as TrackingMessage} />
           <Button
             variant="ghost"
             size="sm"

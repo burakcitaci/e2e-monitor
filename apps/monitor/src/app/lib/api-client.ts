@@ -133,6 +133,20 @@ class ApiClient {
     }
   }
 
+  async settleMessage(
+    id: string,
+    token: string,
+    disposition: 'complete' | 'abandon' | 'defer' | 'deadletter',
+  ) {
+    return this.request(
+      `/tracked-messages/tracking/${encodeURIComponent(id)}/settle/${encodeURIComponent(token)}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ disposition }),
+      },
+    );
+  }
+
   // AWS SQS API
   async getAwsSqsMessages(): Promise<AwsSqsMessagesData> {
     const response = await this.request<AwsSqsMessagesResponse>(

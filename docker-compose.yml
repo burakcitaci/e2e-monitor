@@ -51,7 +51,8 @@ services:
 
   localstack:
     container_name: localstack
-    image: localstack/localstack:2026.07.0
+    # Community release for token-free local SQS. Newer releases require licensing.
+    image: localstack/localstack:4.14.0@sha256:3ebc37595918b8accb852f8048fef2aff047d465167edd655528065b07bc364a
     ports:
       - "127.0.0.1:4566:4566"
     environment:
@@ -61,11 +62,18 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     volumes:
-      - localstackdata:/var/lib/localstack
+      - localstackcommunitydata:/var/lib/localstack
 
 volumes:
   azuritedata:
   localstackdata:
+  localstackcommunitydata:
   mongodbdata:
   sqldata:

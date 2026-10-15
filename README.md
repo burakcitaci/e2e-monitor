@@ -122,6 +122,42 @@ finish starting. Inspect them with `docker compose ps` and
 
 ## API areas
 
+### Send and process messages
+
+On **Tracking Messages**, choose **Send message**, select Azure Service Bus or
+AWS SQS, then choose a queue (or an Azure topic) and enter JSON or plain text.
+Azure destinations come from the emulator configuration. AWS shows the default
+queue plus active saved AWS queue resources; names are resolved by the backend.
+
+Processing defaults to `MESSAGE_PROCESSING_MODE=manual`. Workers hold a live
+delivery for up to 90 seconds, capped by the remaining Azure lock lifetime. Its table row offers **Receive / settle** with
+Complete (receive), Abandon, Defer, and Dead-letter actions. History and messages
+not currently leased show no broker action. Topic subscription deliveries have
+separate action tokens and display their subscription path. Broker failures keep
+the row unchanged and report an error. Tokens expire on restart or lease expiry;
+wait for broker redelivery and refresh rather than retrying an old token.
+
+For Azure, Defer uses native deferred-message settlement; retrieving that deferred
+message by sequence number is not yet exposed in the dashboard. For SQS, Defer
+hides the message for five minutes, and Abandon makes it visible immediately.
+Manual SQS Dead-letter copies to `<queue>-dlq` before deleting the source (FIFO
+queues retain a `.fifo` suffix). This two-call move is not transactional; an
+ambiguous send failure can cause duplicates. The dashboard does not consume the
+DLQ automatically. Normal broker lock expiry, delivery limits, and redrive policies
+still apply while waiting for user action.
+
+Set `MESSAGE_PROCESSING_MODE=automatic` to retain the previous simulation worker
+behavior. Older provider-specific simulation forms still accept a requested
+disposition for automatic mode; manual mode waits for table actions instead.
+
+Both emulators must be healthy for real sends and settlement. Compose pins the
+LocalStack Community image to `4.14.0` for local SQS without an auth token.
+LocalStack releases from March 2026 require an account and valid
+`LOCALSTACK_AUTH_TOKEN`; upgrading to those images requires explicit token
+configuration. The older Community release does not receive current fixes.
+It uses a separate `localstackcommunitydata` volume to avoid opening newer-version
+state with an older image; the original `localstackdata` volume is preserved.
+
 - `/api/v1/service-bus` sends, receives, lists, and configures Service Bus messages.
 - `/api/v1/aws-sqs` sends, receives, lists, and configures SQS messages.
 - `/api/v1/tracked-messages/tracking` manages unified message tracking.

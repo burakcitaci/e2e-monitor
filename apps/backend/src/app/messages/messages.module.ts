@@ -4,6 +4,7 @@ import { MessageService } from './messages.service';
 import { CommonModule } from '../common/common.module';
 import { TrackingMessage, TrackingMessageSchema } from './message.schema';
 import { MessagesController } from './messages.controller';
+import { PendingDeliveriesService } from './pending-deliveries.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { MessagesController } from './messages.controller';
   controllers: [
     MessagesController,
   ],
-  providers: [MessageService],
-  exports: [MessageService],
+  providers: [MessageService, PendingDeliveriesService],
+  exports: [MessageService, PendingDeliveriesService],
 })
 export class MessageModule {}

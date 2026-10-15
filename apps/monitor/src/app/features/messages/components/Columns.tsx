@@ -4,6 +4,12 @@ import { Row } from "@tanstack/react-table";
 import { TrackingMessage } from "@e2e-monitor/entities";
 import { Badge } from "../../../components/ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
+import { MessageActions } from './MessageActions';
+
+// Keep this component identity stable when polling rebuilds filter options.
+const MessageActionsCell = ({ row }: { row: Row<TrackingMessage> }) => (
+  <MessageActions message={row.original} />
+);
 
 export const createColumns = (
   sentByOptions: Option[],
@@ -14,6 +20,23 @@ export const createColumns = (
   emulatorTypeFilterFn: (row: Row<TrackingMessage>, id: string, value: unknown) => boolean,
   statusFilterFn: (row: Row<TrackingMessage>, id: string, value: unknown) => boolean,
 ): ColumnDef<TrackingMessage>[] => [
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: MessageActionsCell,
+  },
+  {
+    accessorKey: 'body',
+    header: 'Message',
+    cell: ({ row }) => (
+      <div
+        className="max-w-56 truncate text-xs font-mono"
+        title={row.original.body}
+      >
+        {row.original.body}
+      </div>
+    ),
+  },
   {
     accessorKey: 'queue',
     header: ({ column }) => (
@@ -38,11 +61,9 @@ export const createColumns = (
                          emulatorType === 'sqs' ? 'SQS' :
                          emulatorType || '-';
 
-      return (
-        <div className="text-xs">
+      return <div className="text-xs">
           {displayText}
-        </div>
-      );
+        </div>;
     },
     enableColumnFilter: true,
     filterFn: emulatorTypeFilterFn,
@@ -84,7 +105,7 @@ export const createColumns = (
       if (status === 'processing') {
         return (
           <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
-            Processing
+            Pending
           </Badge>
         );
       }
@@ -121,7 +142,9 @@ export const createColumns = (
           variant={variantMap[status] || 'secondary'}
           className="text-xs px-2 py-0.5 h-5"
         >
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {row.original.pendingDeliveries?.length
+            ? 'Pending'
+            : status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       );
     },
@@ -151,7 +174,7 @@ export const createColumns = (
       if (status === 'processing') {
         return (
           <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
-            Processing
+            Pending
           </Badge>
         );
       }

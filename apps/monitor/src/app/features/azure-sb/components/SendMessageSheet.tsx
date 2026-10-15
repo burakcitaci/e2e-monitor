@@ -19,35 +19,16 @@ import {
   SelectValue,
 } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
-import { useSendServiceBusMessage } from '../api/service-bus';
+import {
+  useSendServiceBusMessage,
+  useServiceBusConfig,
+} from '../api/service-bus';
 import {
   uniqueNamesGenerator,
   Config,
   adjectives,
   names,
 } from 'unique-names-generator';
-
-const serviceBusConfig = {
-  Queues: [
-    {
-      Name: 'test-queue',
-      Properties: {
-        DefaultMessageTimeToLive: 'PT1H',
-        MaxDeliveryCount: 10,
-      },
-    },
-  ],
-  Topics: [
-    {
-      Name: 'test-topic',
-      Properties: {
-        DefaultMessageTimeToLive: 'PT1H',
-        DuplicateDetectionHistoryTimeWindow: 'PT20S',
-        RequiresDuplicateDetection: false,
-      },
-    },
-  ],
-};
 
 const config: Config = {
   dictionaries: [adjectives, names],
@@ -73,6 +54,18 @@ export const SendMessageSheet: React.FC<SendMessageModalProps> = ({
   >('complete');
 
   const sendServiceBusMutation = useSendServiceBusMessage();
+  const { data: serviceBusConfig, isLoading, error } = useServiceBusConfig();
+  const entities =
+    serviceBusConfig?.UserConfig.Namespaces.flatMap((namespace) => [
+      ...(namespace.Queues ?? []).map(({ Name }) => ({
+        type: 'queue',
+        name: Name,
+      })),
+      ...(namespace.Topics ?? []).map(({ Name }) => ({
+        type: 'topic',
+        name: Name,
+      })),
+    ]) ?? [];
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,25 +127,28 @@ export const SendMessageSheet: React.FC<SendMessageModalProps> = ({
                   <SelectValue placeholder="Select a queue or topic or leave empty for default" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[
-                    ...serviceBusConfig.Queues.map((q) => ({
-                      type: 'queue',
-                      name: q.Name,
-                    })),
-                    ...serviceBusConfig.Topics.map((t) => ({
-                      type: 'topic',
-                      name: t.Name,
-                    })),
-                  ].map((item) => (
+                  <SelectItem value="__default__">Default Queue</SelectItem>
+                  {entities.map((item) => (
                     <SelectItem
                       key={`${item.type}-${item.name}`}
-                      value={`${item.type}:${item.name}`}
+                      value={item.name}
                     >
                       {item.name} ({item.type})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {isLoading && (
+                <p className="text-xs text-muted-foreground">
+                  Loading queues and topics...
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="text-xs text-destructive">
+                  Could not load queues and topics. You can still use the
+                  default queue.
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <div className="flex items-center justify-between">

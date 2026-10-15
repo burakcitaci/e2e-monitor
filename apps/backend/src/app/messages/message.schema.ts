@@ -42,13 +42,23 @@ export class TrackingMessage {
   @Prop()
   receivedAt?: Date;
 
-  @Prop({ required: true, enum: trackingStatuses, default: 'processing' })
+  @Prop({
+    type: String,
+    required: true,
+    enum: trackingStatuses,
+    default: 'processing',
+  })
   status?: TrackingStatus;
 
-  @Prop({ enum: messageDispositions })
+  @Prop({ type: String, enum: messageDispositions })
   disposition?: MessageDisposition;
 
-  @Prop({ required: true, enum: emulatorTypes, default: 'azure-service-bus' })
+  @Prop({
+    type: String,
+    required: true,
+    enum: emulatorTypes,
+    default: 'azure-service-bus',
+  })
   emulatorType?: EmulatorType;
 }
 

@@ -24,6 +24,7 @@ import { MessageService } from '../messages/messages.service';
 import { AwsSqsConnectionException } from '../common/exceptions';
 import type { TrackingMessage } from '../messages/message.schema';
 import { MessageProcessor, DispositionActions } from '../common/message-processor';
+import { PendingDeliveriesService } from '../messages/pending-deliveries.service';
 
 @Injectable()
 export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
@@ -38,6 +39,7 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
     private readonly config: AppConfigService,
     private readonly logger: AppLogger,
     private readonly messageService: MessageService,
+    private readonly pendingDeliveries: PendingDeliveriesService,
   ) {
     this.logger.setContext(AwsSqsService.name);
     this.messageProcessor = new MessageProcessor(messageService, logger);
@@ -46,7 +48,7 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
   async sendMessage(dto: SendSqsMessageDto) {
     const queueName = dto.queueUrl
       ? this.extractQueueNameFromUrl(dto.queueUrl)
-      : this.config.awsSqsQueueName;
+      : (dto.queueName ?? this.config.awsSqsQueueName);
 
     const queueUrl = await this.getOrCreateQueueUrl(dto.queueUrl || queueName);
     const messageId = dto.messageId ?? randomUUID();
@@ -85,10 +87,17 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
         emulatorType: 'sqs',
       });
     } catch (error) {
-      this.logger.error(`Failed to create tracking entry for message ${response.MessageId || messageId}:`, error);
+      this.logger.error(`Failed to create tracking entry for message ${response.MessageId || messageId}:`,
+        error,
+      );
     }
 
-    this.logger.log(`Sent SQS message ${response.MessageId || messageId} to ${queueName}`);
+    this.logger.log(
+      `Sent SQS message ${response.MessageId || messageId} to ${queueName}`,
+    );
+    if (this.config.manualProcessing && !this.isShuttingDown) {
+      await this.startPolling(queueName);
+    }
 
     return {
       queueName,
@@ -99,7 +108,14 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getMessages(): Promise<TrackingMessage[]> {
-    return await this.messageService.findTrackingMessagesByEmulator('sqs');
+    const messages =
+      await this.messageService.findTrackingMessagesByEmulator('sqs');
+    return messages.map((message) => ({
+      ...message,
+      pendingDeliveries: this.pendingDeliveries.list(
+        String((message as { _id?: unknown })._id),
+      ),
+    }));
   }
 
   async receiveMessage(dto: ReceiveSqsMessageDto) {
@@ -193,6 +209,7 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     this.isShuttingDown = true;
+    this.pendingDeliveries.releaseAll();
 
     for (const [queueName, interval] of this.pollingIntervals) {
       clearInterval(interval);
@@ -239,20 +256,27 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
     try {
       const queueUrl = await this.getOrCreateQueueUrl(queueName);
 
-      const response = await this.client.send(new ReceiveMessageCommand({
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: 1,
-        WaitTimeSeconds: 0,
-        MessageAttributeNames: ['All'],
-      }));
+      const response = await this.client.send(
+        new ReceiveMessageCommand({
+          QueueUrl: queueUrl,
+          MaxNumberOfMessages: 1,
+          WaitTimeSeconds: 0,
+          MessageAttributeNames: ['All'],
+          ...(this.config.manualProcessing ? { VisibilityTimeout: 120 } : {}),
+          MessageSystemAttributeNames: ['All'],
+        }),
+      );
 
       if (!response.Messages || response.Messages.length === 0) {
         return;
       }
 
       const message = response.Messages[0];
-      const messageId = message.MessageId || message.ReceiptHandle?.substring(0, 20) || randomUUID();
-      await this.messageService.ensureTracking({
+      const messageId =
+        message.MessageId ||
+        message.ReceiptHandle?.substring(0, 20) ||
+        randomUUID();
+      const tracking = await this.messageService.ensureTracking({
         messageId,
         body: message.Body ?? '',
         sentBy:
@@ -262,6 +286,44 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
         queue: queueName,
         emulatorType: 'sqs',
       });
+      if (this.config.manualProcessing) {
+        const actions = this.createDispositionActions();
+        const delivery = { message, queueUrl };
+        let copiedToDlq = false;
+        await this.pendingDeliveries.hold(String(tracking._id), queueName, {
+          complete: () => actions.complete(delivery),
+          abandon: () => actions.abandon(delivery),
+          defer: () => actions.defer(delivery),
+          deadletter: async () => {
+            if (!message.ReceiptHandle)
+              throw new Error('Message has no receipt handle');
+            const fifo = queueName.endsWith('.fifo');
+            const dlqName = fifo
+              ? `${queueName.slice(0, -5).slice(0, 71)}-dlq.fifo`
+              : `${queueName.slice(0, 76)}-dlq`;
+            const dlqUrl = await this.getOrCreateQueueUrl(dlqName);
+            if (!copiedToDlq) {
+              await this.client.send(
+                new SendMessageCommand({
+                  QueueUrl: dlqUrl,
+                  MessageBody: message.Body ?? '',
+                  MessageAttributes: message.MessageAttributes,
+                  ...(fifo
+                    ? {
+                        MessageGroupId:
+                          message.Attributes?.MessageGroupId ?? 'dashboard',
+                        MessageDeduplicationId: message.MessageId,
+                      }
+                    : {}),
+                }),
+              );
+              copiedToDlq = true;
+            }
+            await actions.complete(delivery);
+          },
+        });
+        return;
+      }
       const disposition = MessageProcessor.normalizeDisposition(
         message.MessageAttributes?.messageDisposition?.StringValue,
       );
@@ -278,33 +340,51 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
         this.createDispositionActions(),
       );
     } catch (error) {
-      this.logger.error(`Error processing messages for queue ${queueName}:`, error);
+      this.logger.error(
+        `Error processing messages for queue ${queueName}:`,
+        error,
+      );
     }
   }
 
-  private createDispositionActions(): DispositionActions<{ message: Message; queueUrl: string }> {
+  private createDispositionActions(): DispositionActions<{
+    message: Message;
+    queueUrl: string;
+  }> {
     return {
       complete: async ({ message, queueUrl }) => {
         if (message.ReceiptHandle) {
-          await this.client.send(new DeleteMessageCommand({
-            QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle,
-          }));
+          await this.client.send(
+            new DeleteMessageCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: message.ReceiptHandle,
+            }),
+          );
         }
       },
-      abandon: async () => {
-        // Don't delete - message becomes visible again after visibility timeout
+      abandon: async ({ message, queueUrl }) => {
+        if (message.ReceiptHandle) {
+          await this.client.send(
+            new ChangeMessageVisibilityCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: message.ReceiptHandle,
+              VisibilityTimeout: 0,
+            }),
+          );
+        }
       },
       deadletter: async () => {
         // Don't delete - configure redrive policy for DLQ
       },
       defer: async ({ message, queueUrl }) => {
         if (message.ReceiptHandle) {
-          await this.client.send(new ChangeMessageVisibilityCommand({
-            QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle,
-            VisibilityTimeout: 300, // 5 minutes
-          }));
+          await this.client.send(
+            new ChangeMessageVisibilityCommand({
+              QueueUrl: queueUrl,
+              ReceiptHandle: message.ReceiptHandle,
+              VisibilityTimeout: 300, // 5 minutes
+            }),
+          );
         }
       },
     };
@@ -359,18 +439,35 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
 
   private async createQueue(queueName: string): Promise<string> {
     try {
-      const createResponse = await this.client.send(new CreateQueueCommand({ QueueName: queueName }));
+      const createResponse = await this.client.send(
+        new CreateQueueCommand({
+          QueueName: queueName,
+          ...(queueName.endsWith('.fifo')
+            ? {
+                Attributes: {
+                  FifoQueue: 'true',
+                  ContentBasedDeduplication: 'true',
+                },
+              }
+            : {}),
+        }),
+      );
 
       if (!createResponse.QueueUrl) {
-        throw new Error(`Queue creation succeeded but no QueueUrl was returned for ${queueName}`);
+        throw new Error(
+          `Queue creation succeeded but no QueueUrl was returned for ${queueName}`,
+        );
       }
 
       // Verify queue exists
       let verifiedUrl = createResponse.QueueUrl;
       for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 100));
+        if (attempt > 0)
+          await new Promise((resolve) => setTimeout(resolve, 100));
         try {
-          const verifyResponse = await this.client.send(new GetQueueUrlCommand({ QueueName: queueName }));
+          const verifyResponse = await this.client.send(
+            new GetQueueUrlCommand({ QueueName: queueName }),
+          );
           if (verifyResponse.QueueUrl) {
             verifiedUrl = verifyResponse.QueueUrl;
             break;
@@ -389,11 +486,13 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
       if (this.isConnectionError(errorMessage, error)) {
         throw new AwsSqsConnectionException(
           `Cannot connect to LocalStack at ${this.config.awsSqsEndpoint}. ` +
-          `Please ensure LocalStack is running: docker compose up localstack.`,
+            `Please ensure LocalStack is running: docker compose up localstack.`,
         );
       }
 
-      throw new AwsSqsConnectionException(`Failed to create queue ${queueName}: ${errorMessage}`);
+      throw new AwsSqsConnectionException(
+        `Failed to create queue ${queueName}: ${errorMessage}`,
+      );
     }
   }
 
@@ -405,7 +504,7 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
     return error instanceof Error ? error.message : String(error);
   }
 
-private isConnectionError(errorMessage: string, error: unknown): boolean {
+  private isConnectionError(errorMessage: string, error: unknown): boolean {
   return (
     errorMessage.includes('ECONNREFUSED') ||
     errorMessage.includes('connect') ||
@@ -418,7 +517,6 @@ private isConnectionError(errorMessage: string, error: unknown): boolean {
     Boolean(error && typeof error === 'object' && 'errors' in error)
   );
 }
-
 
   private isQueueNotExistError(error: unknown, errorMessage: string): boolean {
     const errorName = (error as { name?: string })?.name || '';

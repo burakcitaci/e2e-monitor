@@ -10,6 +10,7 @@ import { MessageService } from '../messages/messages.service';
 import { AppConfigService } from '../common/app-config.service';
 import { AppLogger } from '../common/logger.service';
 import { MessageProcessor, DispositionActions, MessageDisposition } from '../common/message-processor';
+import { PendingDeliveriesService } from '../messages/pending-deliveries.service';
 
 @Injectable()
 export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
@@ -22,6 +23,7 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
     private readonly messageService: MessageService,
     private readonly config: AppConfigService,
     private readonly logger: AppLogger,
+    private readonly pendingDeliveries: PendingDeliveriesService,
   ) {
     this.logger.setContext(ServiceBusWorker.name);
     this.messageProcessor = new MessageProcessor(messageService, logger);
@@ -53,6 +55,7 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    this.pendingDeliveries.releaseAll();
     await Promise.all(
       Array.from(this.subscriptions.values()).map(async (subscription) => {
         try {
@@ -133,13 +136,19 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
       });
 
       this.subscriptions.set(queueName, subscription);
-      this.logger.log(`Service Bus subscription started for queue ${queueName}`);
+      this.logger.log(
+        `Service Bus subscription started for queue ${queueName}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to subscribe to queue ${queueName}:`, error);
     }
   }
 
-  private async subscribeToTopic(topic: string, subscription: string, entityName: string) {
+  private async subscribeToTopic(
+    topic: string,
+    subscription: string,
+    entityName: string,
+  ) {
     try {
       const receiver = this.serviceBusService.createSubscriptionReceiver(
         topic,
@@ -147,7 +156,13 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
       );
       this.receivers.set(entityName, receiver);
 
-      const handlers = this.createMessageHandlers(receiver, entityName, 'topic', topic, subscription);
+      const handlers = this.createMessageHandlers(
+        receiver,
+        entityName,
+        'topic',
+        topic,
+        subscription,
+      );
 
       const subscriptionHandle = receiver.subscribe(handlers, {
         autoCompleteMessages: false,
@@ -155,9 +170,14 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
       });
 
       this.subscriptions.set(entityName, subscriptionHandle);
-      this.logger.log(`Service Bus subscription started for topic ${topic}, subscription ${subscription}`);
+      this.logger.log(
+        `Service Bus subscription started for topic ${topic}, subscription ${subscription}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to subscribe to topic ${topic}, subscription ${subscription}:`, error);
+      this.logger.error(
+        `Failed to subscribe to topic ${topic}, subscription ${subscription}:`,
+        error,
+      );
     }
   }
 
@@ -172,12 +192,14 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
       processMessage: async (message) => {
         const messageId = message.messageId?.toString();
         if (!messageId) {
-          this.logger.warn(`Received message without messageId from ${entityName}`);
+          this.logger.warn(
+            `Received message without messageId from ${entityName}`,
+          );
           await receiver.completeMessage(message);
           return;
         }
 
-        await this.messageService.ensureTracking({
+        const tracking = await this.messageService.ensureTracking({
           messageId,
           body:
             typeof message.body === 'string'
@@ -191,6 +213,21 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
           queue: entityName,
           emulatorType: 'azure-service-bus',
         });
+
+        if (this.config.manualProcessing) {
+          const actions = this.createDispositionActions();
+          const delivery = { message, receiver };
+          const remainingLockMs = message.lockedUntilUtc
+            ? Math.max(0, message.lockedUntilUtc.getTime() - Date.now() - 2000)
+            : 90_000;
+          await this.pendingDeliveries.hold(String(tracking._id), entityName, {
+            complete: () => actions.complete(delivery),
+            abandon: () => actions.abandon(delivery),
+            defer: () => actions.defer(delivery),
+            deadletter: () => actions.deadletter(delivery),
+          }, Math.min(90_000, remainingLockMs));
+          return;
+        }
 
         const disposition = await this.getDisposition(messageId, message);
 
@@ -207,8 +244,14 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
         );
       },
       processError: async (args: ProcessErrorArgs) => {
-        const location = type === 'topic' ? `topic ${topic}/subscription ${subscription}` : `queue ${entityName}`;
-        this.logger.error(`Service Bus processor error for ${location}:`, args.error);
+        const location =
+          type === 'topic'
+            ? `topic ${topic}/subscription ${subscription}`
+            : `queue ${entityName}`;
+        this.logger.error(
+          `Service Bus processor error for ${location}:`,
+          args.error,
+        );
       },
     };
   }
@@ -218,10 +261,11 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
     message: ServiceBusReceivedMessage,
   ): Promise<MessageDisposition> {
     // Check database first for existing disposition
-    const existingMessage = await this.messageService.findOneTrackingByMessageId(
-      messageId,
-      'azure-service-bus',
-    );
+    const existingMessage =
+      await this.messageService.findOneTrackingByMessageId(
+        messageId,
+        'azure-service-bus',
+      );
     if (existingMessage?.disposition) {
       return MessageProcessor.normalizeDisposition(existingMessage.disposition);
     }
@@ -264,6 +308,7 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
         : '';
     const subscriptionList = [queueList, topicList].filter(Boolean).join('; ');
 
-    this.logger.log(`Service Bus subscriptions started for ${totalSubscriptions} entity(ies): ${subscriptionList}`);
+    this.logger.log(`Service Bus subscriptions started for ${totalSubscriptions} entity(ies): ${subscriptionList}`,
+    );
   }
 }

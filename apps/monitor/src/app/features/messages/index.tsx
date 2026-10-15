@@ -6,8 +6,12 @@ import { MessagesTable } from './components/MessagesTable';
 import { ErrorMessage } from './components/ErrorMessage';
 import { StatisticsCards } from './components/StatisticsCards';
 import { TrackingMessage } from '@e2e-monitor/entities';
+import { Button } from '../../components/ui/button';
+import { SendMessageDialog } from './components/SendMessageDialog';
+import { Send } from 'lucide-react';
 
 export const MessagesPage = () => {
+  const [sendOpen, setSendOpen] = React.useState(false);
   const { data: messages = [], isLoading, error } = useTrackingMessages();
 
   // Calculate statistics by disposition and emulator
@@ -32,12 +36,20 @@ export const MessagesPage = () => {
 
   return (
     <div className="p-6 min-w-0">
-      <div className="flex flex-col gap-1 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
           <h1 className="text-2xl font-bold">Tracking Messages</h1>
           <h2 className="text-sm text-muted-foreground">
-            Manage your tracking messages here.
+            Send messages and choose how pending broker deliveries are
+            processed.
           </h2>
         </div>
+      <Button onClick={() => setSendOpen(true)}>
+          <Send className="mr-2 h-4 w-4" />
+          Send message
+        </Button>
+      </div>
+      {sendOpen && <SendMessageDialog onClose={() => setSendOpen(false)} />}
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
         {/* Error Messages */}
         {error && (
@@ -57,6 +69,12 @@ export const MessagesPage = () => {
 
         {/* Statistics Cards */}
         <StatisticsCards stats={stats} />
+
+        <p className="text-sm text-muted-foreground">
+          New deliveries have a Receive / settle menu in the Actions column:
+          Complete, Abandon, Defer, or Dead-letter. History rows were already
+          processed; send a new message to try manual processing.
+        </p>
 
         {/* Table */}
         <div className="w-full min-w-0 flex-1 min-h-0">

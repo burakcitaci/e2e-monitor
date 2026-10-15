@@ -44,6 +44,15 @@ export const trackingMessageSchema = z.preprocess(
     receivedBy: z.string().optional().nullable(),
     disposition: z.enum(['complete', 'abandon', 'deadletter', 'defer']).optional().nullable(),
     emulatorType: z.enum(['sqs', 'azure-service-bus']).optional().nullable(),
+    pendingDeliveries: z
+      .array(
+        z.object({
+          token: z.string(),
+          queue: z.string(),
+          expiresAt: z.coerce.date(),
+        }),
+      )
+      .optional(),
     // Azure Service Bus optional fields
     contentType: z.string().optional(),
     subject: z.string().optional(),
@@ -174,6 +183,7 @@ export type ServiceBusConfig = z.infer<typeof serviceBusConfigSchema>;
 
 // Send SQS message request schema
 export const sendSqsMessageSchema = z.object({
+  queueName: z.string().optional(),
   queueUrl: z.string().optional(),
   body: z.string(),
   messageId: z.string().optional(),

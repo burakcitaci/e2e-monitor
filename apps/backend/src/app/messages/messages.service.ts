@@ -11,7 +11,7 @@ import { AppLogger } from '../common/logger.service';
 
 type NewTrackingMessage = Pick<
   TrackingMessage,
-  'messageId' | 'body' | 'sentBy' | 'sentAt' | 'status' | 'queue' | 'emulatorType'
+  | 'messageId' | 'body' | 'sentBy' | 'sentAt' | 'status' | 'queue' | 'emulatorType'
 >;
 
 @Injectable()
@@ -56,7 +56,9 @@ export class MessageService {
     return new this.messageModel(message).save();
   }
 
-  async ensureTracking(message: NewTrackingMessage): Promise<TrackingMessage> {
+  async ensureTracking(
+    message: NewTrackingMessage,
+  ): Promise<TrackingMessage & { _id: unknown }> {
     return this.messageModel
       .findOneAndUpdate(
         {
@@ -67,7 +69,7 @@ export class MessageService {
         { new: true, upsert: true, setDefaultsOnInsert: true },
       )
       .lean()
-      .exec() as unknown as TrackingMessage;
+      .exec() as unknown as TrackingMessage & { _id: unknown };
   }
 
   async updateTracking(

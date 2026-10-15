@@ -8,10 +8,17 @@ import {
   IsUrl,
   Max,
   MaxLength,
+  Matches,
   Min,
 } from 'class-validator';
 
 export class SendSqsMessageDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  @Matches(/^[a-zA-Z0-9_-]+(?:\.fifo)?$/)
+  queueName?: string;
+
   @IsOptional()
   @IsUrl({ require_tld: false })
   queueUrl?: string;

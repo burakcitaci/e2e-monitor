@@ -16,6 +16,7 @@ import { ReceiveServiceBusMessageDto } from './dto/receive-service-bus-message.d
 import { AppConfigService } from '../common/app-config.service';
 import { AppLogger } from '../common/logger.service';
 import { MessageService } from '../messages/messages.service';
+import { PendingDeliveriesService } from '../messages/pending-deliveries.service';
 
 @Injectable()
 export class ServiceBusService implements OnModuleDestroy {
@@ -26,6 +27,7 @@ export class ServiceBusService implements OnModuleDestroy {
     private readonly config: AppConfigService,
     private readonly logger: AppLogger,
     private readonly messageService: MessageService,
+    private readonly pendingDeliveries: PendingDeliveriesService,
   ) {
     this.logger.setContext(ServiceBusService.name);
   }
@@ -71,7 +73,9 @@ export class ServiceBusService implements OnModuleDestroy {
     return { queueName, messageId };
   }
 
-  createReceiver(queueName: string = this.config.serviceBusQueue): ServiceBusReceiver {
+  createReceiver(
+    queueName: string = this.config.serviceBusQueue,
+  ): ServiceBusReceiver {
     return this.client.createReceiver(queueName, {
       receiveMode: 'peekLock',
     });
@@ -134,7 +138,9 @@ export class ServiceBusService implements OnModuleDestroy {
       // Complete the message
       await receiver.completeMessage(message);
 
-      this.logger.log(`Received Service Bus message ${messageId} from ${entityName} by ${dto.receivedBy}`);
+      this.logger.log(
+        `Received Service Bus message ${messageId} from ${entityName} by ${dto.receivedBy}`,
+      );
 
       return {
         success: true,
@@ -142,7 +148,10 @@ export class ServiceBusService implements OnModuleDestroy {
         data: {
           queueName: entityName,
           messageId,
-          body: typeof message.body === 'string' ? message.body : JSON.stringify(message.body),
+          body:
+            typeof message.body === 'string'
+              ? message.body
+              : JSON.stringify(message.body),
         },
       };
     } finally {
@@ -151,8 +160,16 @@ export class ServiceBusService implements OnModuleDestroy {
   }
 
   async getMessages() {
-
-   return await this.messageService.findTrackingMessagesByEmulator('azure-service-bus');
+    const messages =
+      await this.messageService.findTrackingMessagesByEmulator(
+        'azure-service-bus',
+      );
+    return messages.map((message) => ({
+      ...message,
+      pendingDeliveries: this.pendingDeliveries.list(
+        String((message as { _id?: unknown })._id),
+      ),
+    }));
   }
 
   async ping(): Promise<void> {
@@ -172,7 +189,9 @@ export class ServiceBusService implements OnModuleDestroy {
     }
   }
 
-  private async getOrCreateSender(queueName: string): Promise<ServiceBusSender> {
+  private async getOrCreateSender(
+    queueName: string,
+  ): Promise<ServiceBusSender> {
     const existing = this.senders.get(queueName);
     if (existing) {
       return existing;
@@ -185,7 +204,7 @@ export class ServiceBusService implements OnModuleDestroy {
 
   async onModuleDestroy() {
     await Promise.all(
-      Array.from(this.senders.values()).map(async (sender) => sender.close())
+      Array.from(this.senders.values()).map(async (sender) => sender.close()),
     );
     this.senders.clear();
     await this.client.close();

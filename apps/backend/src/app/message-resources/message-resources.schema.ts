@@ -31,6 +31,7 @@ export class MessagingResource {
 
 
   @Prop({
+    type: String,
     required: true,
     enum: ['active', 'inactive'],
     default: 'active',

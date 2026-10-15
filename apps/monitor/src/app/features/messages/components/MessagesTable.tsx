@@ -90,8 +90,8 @@ export const MessagesTable: React.FC<MessagesTableProps> = ({
       <DataTable
         columns={columns}
         data={safeMessages}
-        searchKey="emulatorType"
-        searchPlaceholder="Search message emulator type..."
+        searchKey="body"
+        searchPlaceholder="Search message body..."
       />
     </div>
   );

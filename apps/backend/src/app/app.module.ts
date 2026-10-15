@@ -26,6 +26,9 @@ import { MessageResourcesModule } from './message-resources/message-resources.mo
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
+        MESSAGE_PROCESSING_MODE: Joi.string()
+          .valid('manual', 'automatic')
+          .default('manual'),
         CORS_ORIGIN: Joi.string().default('http://localhost:4200'),
         SERVICE_BUS_CONNECTION_STRING: Joi.string().default(
           'Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;UseDevelopmentEmulator=true'
