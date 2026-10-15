@@ -9,6 +9,12 @@ export const useGetMessageResources = () => {
   });
 };
 
+export const useGetSqsQueueResources = () => useQuery({
+  queryKey: ['sqs-queue-resources'],
+  queryFn: () => apiClient.getSqsQueueResources(),
+  refetchInterval: 10000,
+});
+
 export const useUpdateMessageResource = () => {
   const queryClient = useQueryClient();
   return useMutation({

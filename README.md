@@ -160,6 +160,11 @@ state with an older image; the original `localstackdata` volume is preserved.
 
 - `/api/v1/service-bus` sends, receives, lists, and configures Service Bus messages.
 - `/api/v1/aws-sqs` sends, receives, lists, and configures SQS messages.
+- `/api/v1/aws-sqs/queues` discovers queues from the configured SQS endpoint,
+  including queues created outside the dashboard. Messaging Resources refreshes
+  this list every ten seconds and merges it with saved resources without duplicate
+  queue rows. Discovered entries are read-only; discovery does not save metadata
+  to MongoDB or change broker resources.
 - `/api/v1/tracked-messages/tracking` manages unified message tracking.
 - `/api/v1/message-resources/resources` manages saved messaging resources.
 

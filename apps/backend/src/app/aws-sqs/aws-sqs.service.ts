@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   SQSClient,
+  ListQueuesCommand,
   SendMessageCommand,
   ReceiveMessageCommand,
   DeleteMessageCommand,
@@ -43,6 +44,26 @@ export class AwsSqsService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.logger.setContext(AwsSqsService.name);
     this.messageProcessor = new MessageProcessor(messageService, logger);
+  }
+
+  async listQueueResources() {
+    const urls = new Set<string>();
+    let nextToken: string | undefined;
+    do {
+      const page = await this.client.send(new ListQueuesCommand({
+        MaxResults: 1000,
+        ...(nextToken && { NextToken: nextToken }),
+      }));
+      for (const url of page.QueueUrls ?? []) urls.add(url);
+      nextToken = page.NextToken;
+    } while (nextToken);
+    return [...urls].map((url) => ({
+      id: `aws-sqs:${encodeURIComponent(url)}`,
+      name: this.extractQueueNameFromUrl(url),
+      provider: 'aws' as const,
+      type: 'queue' as const,
+      status: 'active' as const,
+    }));
   }
 
   async sendMessage(dto: SendSqsMessageDto) {

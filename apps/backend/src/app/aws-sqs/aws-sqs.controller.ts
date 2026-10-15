@@ -21,6 +21,11 @@ export class AwsSqsController {
     };
   }
 
+  @Get('queues')
+  async listQueues() {
+    return { success: true, data: await this.awsSqsService.listQueueResources() };
+  }
+
   @Get('messages')
   async getMessages() {
     const result = await this.awsSqsService.getMessages();

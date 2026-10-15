@@ -6,6 +6,7 @@ import { createColumns } from './components/Columns';
 import {
   useCreateMessageResource,
   useGetMessageResources,
+  useGetSqsQueueResources,
   useUpdateMessageResource,
 } from './api/messaging-resource';
 import { serviceBusConfig } from './lib/utils';
@@ -16,6 +17,7 @@ export default function MessagingResources() {
   const [currentResource, setCurrentResource] =
     useState<MessagingResource | null>(null);
   const { data: messageResources } = useGetMessageResources();
+  const { data: sqsResources, isLoading: sqsLoading, error: sqsError, refetch: refreshSqs } = useGetSqsQueueResources();
 
   const { mutate: createMessageResource } = useCreateMessageResource();
   const { mutate: updateMessageResource } = useUpdateMessageResource();
@@ -73,6 +75,9 @@ export default function MessagingResources() {
 
   const allMessageResources: MessagingResource[] = [
     ...(messageResources ?? []),
+    ...(sqsResources ?? []).filter((queue) => !(messageResources ?? []).some(
+      (saved) => saved.provider === queue.provider && saved.type === queue.type && saved.name === queue.name,
+    )),
     ...serviceBusConfig.Topics.map((topic) => ({
       id: `azure-topic-${topic.Name}`,
       name: topic.Name,
@@ -97,6 +102,12 @@ export default function MessagingResources() {
         </h2>
       </div>
 
+      {sqsLoading && <p role="status">Discovering SQS queues…</p>}
+      {sqsError && <div role="alert" className="mb-4 text-sm text-destructive">
+        Could not load SQS queues: {sqsError.message}. Saved resources are still shown.
+        <button className="ml-2 underline" onClick={() => refreshSqs()}>Retry</button>
+      </div>}
+
       <DataTable
         searchKey="name"
         searchPlaceholder="Search resources..."
@@ -112,7 +123,7 @@ export default function MessagingResources() {
       <DetailSheet
         open={open}
         setOpen={setOpen}
-        editing={editing !== null}
+        editing={editing}
         form={{ ...form, id: currentResource?.id ?? '' }}
         setForm={setForm}
         handleSave={handleSave}

@@ -10,6 +10,7 @@ import {
   ChangeMessageVisibilityCommand,
   DeleteMessageCommand,
   GetQueueUrlCommand,
+  ListQueuesCommand,
   ReceiveMessageCommand,
   SendMessageCommand,
   type SQSClient,
@@ -81,6 +82,26 @@ describe('SQS manual processing', () => {
         }),
       }),
     );
+  });
+
+  it('discovers all SQS pages and deduplicates queue URLs', async () => {
+    send.mockResolvedValueOnce({ QueueUrls: ['http://local/orders'], NextToken: 'next' })
+      .mockResolvedValueOnce({ QueueUrls: ['http://local/orders', 'http://local/events.fifo'] });
+    const resources = await service.listQueueResources();
+    expect(resources.map((resource) => resource.name)).toEqual(['orders', 'events.fifo']);
+    expect(resources[0]).toEqual({ id: 'aws-sqs:http%3A%2F%2Flocal%2Forders', name: 'orders', provider: 'aws', type: 'queue', status: 'active' });
+    expect(send).toHaveBeenNthCalledWith(2, expect.any(ListQueuesCommand));
+    expect(send).toHaveBeenNthCalledWith(2, expect.objectContaining({ input: { MaxResults: 1000, NextToken: 'next' } }));
+  });
+
+  it('returns an empty list when SQS has no queues', async () => {
+    send.mockResolvedValueOnce({});
+    await expect(service.listQueueResources()).resolves.toEqual([]);
+  });
+
+  it('surfaces discovery failures instead of claiming SQS is empty', async () => {
+    send.mockRejectedValueOnce(new Error('SQS unavailable'));
+    await expect(service.listQueueResources()).rejects.toThrow('SQS unavailable');
   });
 
   it.each([

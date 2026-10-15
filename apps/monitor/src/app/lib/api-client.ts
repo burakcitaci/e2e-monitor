@@ -427,6 +427,14 @@ class ApiClient {
   }
 
   // Message Resources API
+  async getSqsQueueResources(): Promise<MessageResources[]> {
+    const response = await this.request('/aws-sqs/queues', undefined, messageResourcesResponseSchema);
+    if (!isApiResponse<MessageResources[]>(response) || !response.success || !response.data) {
+      throw new ApiError(500, 'Failed to discover SQS queues');
+    }
+    return response.data;
+  }
+
   async getMessageResources(): Promise<MessageResources[]> {
     const response = await this.request('/message-resources/resources', undefined, messageResourcesResponseSchema);
     if (!isApiResponse<MessageResources[]>(response) || !response.success || !response.data) {
