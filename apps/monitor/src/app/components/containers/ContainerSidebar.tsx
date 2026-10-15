@@ -22,6 +22,11 @@ const data = {
   },
   navMain: [
     {
+      title: "E2E Tests",
+      url: "/e2e-tests",
+      icon: IconDashboard,
+    },
+    {
     title: "Main",
     url: "/",
     icon: IconDashboard,

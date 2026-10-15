@@ -122,6 +122,15 @@ finish starting. Inspect them with `docker compose ps` and
 
 ## API areas
 
+### E2E test monitor demo
+
+Open **E2E Tests** at <http://localhost:4200/e2e-tests> to create a scenario policy
+and simulate Backend A publishing and Backend B processing a correlated message.
+Choose successful processing, consumer failure, or missing-consumer timeout and
+inspect the saved verdict and evidence timeline. Every result is labeled
+**Simulated**; this demo does not send or consume broker messages or test real
+backends. See [the E2E demo design and API](docs/e2e-tests.md).
+
 ### Send and process messages
 
 On **Tracking Messages**, choose **Send message**, select Azure Service Bus or

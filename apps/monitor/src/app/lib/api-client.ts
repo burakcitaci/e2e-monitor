@@ -1,5 +1,7 @@
 import { config } from './config';
 import { z, ZodError } from 'zod';
+import type { DemoOutcome, TestRun, TestRunSummary, TestScenario } from '@e2e-monitor/entities';
+import { testRunSchema, testRunSummarySchema, testScenarioSchema } from './e2e-schemas';
 import {
   trackingMessagesResponseSchema,
   trackingMessageResponseSchema,
@@ -131,6 +133,34 @@ class ApiClient {
 
       throw new ApiError(0, error instanceof Error ? error.message : 'Network error');
     }
+  }
+
+  private async e2eRequest<T>(path: string, schema: z.ZodType<T>, options?: RequestInit): Promise<T> {
+    const response = await this.request(path, options, apiResponseSchema(schema));
+    if (!isApiResponse<T>(response) || !response.success || response.data === undefined) {
+      throw new ApiError(500, 'The E2E test request did not succeed.');
+    }
+    return response.data;
+  }
+
+  getTestScenarios(): Promise<TestScenario[]> {
+    return this.e2eRequest('/e2e-tests/scenarios', z.array(testScenarioSchema));
+  }
+
+  createTestScenario(input: Pick<TestScenario, 'name' | 'policy'>): Promise<TestScenario> {
+    return this.e2eRequest('/e2e-tests/scenarios', testScenarioSchema, { method: 'POST', body: JSON.stringify(input) });
+  }
+
+  startDemoRun(scenarioId: string, outcome: DemoOutcome): Promise<TestRun> {
+    return this.e2eRequest(`/e2e-tests/scenarios/${encodeURIComponent(scenarioId)}/demo-runs`, testRunSchema, { method: 'POST', body: JSON.stringify({ outcome }) });
+  }
+
+  getTestRuns(): Promise<TestRunSummary[]> {
+    return this.e2eRequest('/e2e-tests/runs', z.array(testRunSummarySchema));
+  }
+
+  getTestRun(id: string): Promise<TestRun> {
+    return this.e2eRequest(`/e2e-tests/runs/${encodeURIComponent(id)}`, testRunSchema);
   }
 
   async settleMessage(

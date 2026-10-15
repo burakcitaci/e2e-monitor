@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { MessageResourcesModule } from './message-resources/message-resources.module';
+import { E2eTestsModule } from './e2e-tests/e2e-tests.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { MessageResourcesModule } from './message-resources/message-resources.mo
     }),
     MessageModule,
     MessageResourcesModule,
+    E2eTestsModule,
     ServiceBusModule,
     AwsSqsModule,
     HealthModule,
