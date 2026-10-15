@@ -15,6 +15,59 @@ const scenario: TestScenario = {
   createdAt: '2026-10-15T10:00:00.000Z',
 };
 
+test('E2E history selection keeps timelines isolated and preserves the scenario draft', async ({
+  page,
+}) => {
+  const first: TestRun = {
+    id: 'c483bfbd-080e-4f28-840c-23f247b2a8a3',
+    mode: 'demo',
+    scenarioId: scenario.id,
+    scenarioName: 'Completed payment',
+    policy: scenario.policy,
+    correlationId: '56b6a6a9-a329-4838-a20e-9b9cce8ca257',
+    status: 'passed',
+    reason: 'Matching message processed.',
+    startedAt: scenario.createdAt,
+    deadlineAt: '2026-10-15T10:00:02.000Z',
+    evidence: [],
+  };
+  const second: TestRun = {
+    ...first,
+    id: 'a5780028-48d0-439a-8119-a1ff21d02bd5',
+    scenarioName: 'Failed payment',
+    correlationId: 'e4b5ed8b-81c9-4476-a528-154f0d6e474b',
+    status: 'failed',
+    reason: 'Consumer reported failure.',
+  };
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const data = path.endsWith('/scenarios')
+      ? [scenario]
+      : path.endsWith('/runs')
+        ? [first, second]
+        : path.endsWith(first.id)
+          ? first
+          : second;
+    await route.fulfill({ json: { success: true, data } });
+  });
+  await page.goto('/e2e-tests');
+  await page
+    .getByLabel('Scenario name', { exact: true })
+    .fill('My unfinished policy');
+  await page.getByLabel('Simulated outcome').selectOption('fail');
+  const timeline = page.getByRole('region', { name: 'Run timeline' });
+  await page.getByRole('button', { name: /Completed payment/ }).click();
+  await expect(timeline).toContainText(first.correlationId);
+  await page.getByRole('button', { name: /Failed payment/ }).click();
+  await expect(timeline).toContainText(second.correlationId);
+  await expect(timeline).not.toContainText(first.correlationId);
+  await expect(timeline.getByRole('status')).toContainText('Failed');
+  await expect(page.getByLabel('Scenario name', { exact: true })).toHaveValue(
+    'My unfinished policy',
+  );
+  await expect(page.getByLabel('Simulated outcome')).toHaveValue('fail');
+});
+
 for (const [outcome, label] of [
   ['pass', 'Passed'],
   ['fail', 'Failed'],

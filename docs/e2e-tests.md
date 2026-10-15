@@ -37,6 +37,12 @@ orchestrates demo runs, and the pure `evaluatePolicy` function computes verdicts
 Shared TypeScript contracts live in `libs/shared/entities`; frontend responses are
 validated with Zod. The React page polls run summaries and the selected live run.
 
+The frontend feature keeps responsibilities local: `api/hooks.ts` owns query keys,
+polling, mutations, and cache updates. `ScenarioForm` owns the policy draft,
+`ScenarioList` owns the simulated outcome choice, and `RunHistory` and `RunTimeline`
+render typed props. The page only coordinates selection and composes these sections.
+Status labels are shared within the feature through `lib/run-status.ts`.
+
 Scenarios and runs use separate MongoDB collections. Run evidence is embedded and
 bounded to the demo's two events. Revision-checked atomic updates prevent event
 callbacks from overwriting deadline expiry or concurrent evidence. Unique IDs and
