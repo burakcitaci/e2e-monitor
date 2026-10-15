@@ -30,7 +30,8 @@ export default defineConfig(() => ({
     },
   },
   optimizeDeps: {
-    exclude: ['ssh2', 'cpu-features', '@tabler/icons-react'],
+    exclude: ['ssh2', 'cpu-features'],
+    include: ['@tabler/icons-react'],
   },
   test: {
     globals: true,
