@@ -32,8 +32,9 @@ yarn compose:up
 yarn dev
 ```
 
-The local defaults work without an environment file. Copy `.env.example` to
-`.env` before starting the backend when you need to override them.
+The messaging dashboard works without an environment file. Copy `.env.example`
+to `.env` before starting the backend when you need overrides or want to enable
+the Gemini assistant. Restart the backend after changing `.env`.
 
 | Service | Address |
 | --- | --- |
@@ -71,8 +72,9 @@ yarn compose:down
 | `yarn compose:up` | Start the local dependencies in the background |
 | `yarn compose:down` | Stop the local dependencies |
 
-The Playwright target starts the monitor automatically and mocks its tracked
-messages request, so it does not require the backend or Docker. Install its
+The Playwright target starts the monitor automatically and mocks API responses,
+including AI replies and broker sends. It does not require the backend, Docker,
+or an AI key, and does not prove live broker/LLM integration. Install its
 browser once on a new machine:
 
 ```bash
@@ -88,6 +90,9 @@ file. Important settings are:
 | --- | --- |
 | `PORT` | `3000` |
 | `CORS_ORIGIN` | `http://localhost:4200` |
+| `MESSAGE_PROCESSING_MODE` | `manual` (`automatic` enables simulation workers) |
+| `GEMINI_API_KEY` | Empty; required only for Messaging Chat |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` |
 | `SERVICE_BUS_CONNECTION_STRING` | Service Bus emulator connection |
 | `SERVICE_BUS_NAMESPACE` | `sbemulatorns` |
 | `SERVICE_BUS_QUEUE` | `orders-queue` |
@@ -116,6 +121,8 @@ The API uses the global `/api/v1` prefix:
 - `GET /api/v1/health/ready` checks MongoDB, Azure Service Bus, and SQS.
 - `GET /api/v1/health` is an alias for the readiness check.
 
+The unused root greeting endpoint was removed; `GET /api/v1` returns 404.
+
 A readiness response can remain unhealthy for a short time while the containers
 finish starting. Inspect them with `docker compose ps` and
 `docker compose logs <service>`.
@@ -128,11 +135,26 @@ Set `GEMINI_API_KEY` in the root `.env` using a key from
 [Google AI Studio](https://aistudio.google.com/api-keys), then restart the backend.
 The default model is `gemini-3.5-flash-lite`, which offers a quota-limited free tier.
 Use a free-tier Google project to avoid paid API usage.
-Open **Messaging Chat** from the main page (or <http://localhost:4200/chat>). For example, ask:
+Click **Messaging Chat** on the main **Tracking Messages** page to open a
+right-side sheet. It fills the screen width on mobile and preserves conversations
+and prepared drafts when closed and reopened on the same page. **New chat** or
+leaving the monitor page clears that conversation. Chat is not a sidebar menu;
+<http://localhost:4200/chat> remains available for existing links.
+
+For example, ask:
 `Send {"hello":"world"} to Azure topic application-events` or
 `I want to send a message to AWS queue orders-queue`.
 The assistant asks for missing details, prepares a draft, and sends it only when
-you click **Send message**. See [chat configuration and architecture](docs/messaging-chat.md).
+you click **Send message**. No model response can publish a message automatically.
+Keys stay in the backend; conversation text and destination names go to Google.
+Quota/rate-limit and temporary capacity errors are displayed without automatic
+retries or switching to a paid provider. The application cannot enforce your
+Google project's billing tier. See [chat configuration and architecture](docs/messaging-chat.md).
+
+- `GET /api/v1/messaging-chat/status` reports key presence and the selected model,
+  without returning credentials; it does not verify billing or model availability.
+- `POST /api/v1/messaging-chat/messages` prepares a validated draft or asks for
+  missing details. Confirming the draft uses the existing broker send endpoints.
 
 ### Send and process messages
 
@@ -181,6 +203,28 @@ state with an older image; the original `localstackdata` volume is preserved.
 - `/api/v1/message-resources/resources` manages saved messaging resources.
 
 Request DTOs are validated globally; unknown fields are rejected.
+
+## Codebase graph
+
+Graphify maintains a local codebase graph in `graphify-out/`. Refresh it after
+source changes and removals using the installed Graphify CLI:
+
+```bash
+graphify update . --force
+graphify query "MessagingChatSheet useConversation MessagingChatService" --budget 1500
+```
+
+The update command extracts code locally without an AI key. `--force` permits
+the graph to shrink when obsolete code is removed. It preserves the existing
+semantic documentation layer; it does not perform fresh AI extraction of docs.
+Use the full Graphify skill workflow if documentation semantics need rebuilding.
+Open `graphify-out/graph.html` for navigation or `graphify-out/GRAPH_REPORT.md`
+for the generated report. Generated graphs, caches, and machine-specific state
+remain Git-ignored; they are not application runtime dependencies.
+
+Nx Console lists four active projects: shared entities, monitor, backend, and
+monitor-e2e. Browser checks use the regular `monitor-e2e:e2e` target; generated
+per-spec CI targets are disabled to keep the project list compact.
 
 ## Local data
 
