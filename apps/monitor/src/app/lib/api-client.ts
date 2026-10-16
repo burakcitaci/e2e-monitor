@@ -1,7 +1,7 @@
 import { config } from './config';
 import { z, ZodError } from 'zod';
-import type { DemoOutcome, TestRun, TestRunSummary, TestScenario } from '@e2e-monitor/entities';
-import { testRunSchema, testRunSummarySchema, testScenarioSchema } from './e2e-schemas';
+import type { ChatReply, ChatTurn } from '@e2e-monitor/entities';
+import { chatReplySchema, chatStatusSchema } from './messaging-chat-schemas';
 import {
   trackingMessagesResponseSchema,
   trackingMessageResponseSchema,
@@ -135,32 +135,16 @@ class ApiClient {
     }
   }
 
-  private async e2eRequest<T>(path: string, schema: z.ZodType<T>, options?: RequestInit): Promise<T> {
-    const response = await this.request(path, options, apiResponseSchema(schema));
-    if (!isApiResponse<T>(response) || !response.success || response.data === undefined) {
-      throw new ApiError(500, 'The E2E test request did not succeed.');
-    }
+  async getChatStatus(): Promise<{ configured: boolean; model: string }> {
+    const response = await this.request('/messaging-chat/status', undefined, apiResponseSchema(chatStatusSchema));
+    if (!isApiResponse<{ configured: boolean; model: string }>(response) || !response.success || !response.data) throw new ApiError(500, 'Could not load chatbot configuration.');
     return response.data;
   }
 
-  getTestScenarios(): Promise<TestScenario[]> {
-    return this.e2eRequest('/e2e-tests/scenarios', z.array(testScenarioSchema));
-  }
-
-  createTestScenario(input: Pick<TestScenario, 'name' | 'policy'>): Promise<TestScenario> {
-    return this.e2eRequest('/e2e-tests/scenarios', testScenarioSchema, { method: 'POST', body: JSON.stringify(input) });
-  }
-
-  startDemoRun(scenarioId: string, outcome: DemoOutcome): Promise<TestRun> {
-    return this.e2eRequest(`/e2e-tests/scenarios/${encodeURIComponent(scenarioId)}/demo-runs`, testRunSchema, { method: 'POST', body: JSON.stringify({ outcome }) });
-  }
-
-  getTestRuns(): Promise<TestRunSummary[]> {
-    return this.e2eRequest('/e2e-tests/runs', z.array(testRunSummarySchema));
-  }
-
-  getTestRun(id: string): Promise<TestRun> {
-    return this.e2eRequest(`/e2e-tests/runs/${encodeURIComponent(id)}`, testRunSchema);
+  async chat(messages: ChatTurn[]): Promise<ChatReply> {
+    const response = await this.request('/messaging-chat/messages', { method: 'POST', body: JSON.stringify({ messages }) }, apiResponseSchema(chatReplySchema));
+    if (!isApiResponse<ChatReply>(response) || !response.success || !response.data) throw new ApiError(500, 'Could not get a chatbot reply.');
+    return response.data;
   }
 
   async settleMessage(

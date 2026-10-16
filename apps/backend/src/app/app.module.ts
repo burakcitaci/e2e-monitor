@@ -15,7 +15,7 @@ import { HealthModule } from './health/health.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { MessageResourcesModule } from './message-resources/message-resources.module';
-import { E2eTestsModule } from './e2e-tests/e2e-tests.module';
+import { MessagingChatModule } from './messaging-chat/messaging-chat.module';
 
 @Module({
   imports: [
@@ -27,6 +27,8 @@ import { E2eTestsModule } from './e2e-tests/e2e-tests.module';
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
+        OPENAI_API_KEY: Joi.string().allow('').default(''),
+        OPENAI_MODEL: Joi.string().default('gpt-4.1-mini'),
         MESSAGE_PROCESSING_MODE: Joi.string()
           .valid('manual', 'automatic')
           .default('manual'),
@@ -73,7 +75,7 @@ import { E2eTestsModule } from './e2e-tests/e2e-tests.module';
     }),
     MessageModule,
     MessageResourcesModule,
-    E2eTestsModule,
+    MessagingChatModule,
     ServiceBusModule,
     AwsSqsModule,
     HealthModule,

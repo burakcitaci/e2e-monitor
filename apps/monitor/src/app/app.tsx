@@ -3,14 +3,14 @@ import {
   SidebarInset,
   SidebarProvider,
 } from './components/ui/sidebar';
-import { Routes, Route } from 'react-router';
+import { Routes, Route, Navigate } from 'react-router';
 import { AppSidebar } from './components/containers/ContainerSidebar';
 import { SiteHeader } from './components/common/SiteHeader';
 import { useSidebarState } from './hooks/useSidebarState';
 const MessagingResources = React.lazy(
   () => import('./features/messaging-resources'),
 );
-const E2eTestsPage = React.lazy(() => import('./features/e2e-tests'));
+const MessagingChatPage = React.lazy(() => import('./features/messaging-chat'));
 const AzureSbDetailPage = React.lazy(() =>
   import('./features/azure-sb').then((module) => ({
     default: module.AzureSbDetailPage,
@@ -33,7 +33,7 @@ export function App() {
  const NAV_ITEMS = [
   { title: "Messaging Monitor", url: "/" },
   { title: "Messaging Resources", url: "/messaging-resources" },
-  { title: "E2E Tests", url: "/e2e-tests" },
+  { title: "Messaging Chat", url: "/chat" },
 ]
 
   return (
@@ -52,7 +52,8 @@ export function App() {
             <Routes>
               <Route path="/" element={<MessagesPage />} />
               <Route path="/messaging-resources" element={<MessagingResources />} />
-              <Route path="/e2e-tests" element={<E2eTestsPage />} />
+              <Route path="/chat" element={<MessagingChatPage />} />
+              <Route path="/e2e-tests" element={<Navigate to="/chat" replace />} />
               <Route path="/sqs" element={<AwsSqsDetailPage />} />
               <Route path="/azure-service-bus" element={<AzureSbDetailPage />} />
             </Routes>

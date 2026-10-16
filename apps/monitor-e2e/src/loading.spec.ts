@@ -8,16 +8,19 @@ test('initial route avoids loading thousands of individual icon modules', async 
     if (request.resourceType() === 'script') scriptRequests.push(request.url());
   });
   await page.route('**/api/v1/**', (route) =>
-    route.fulfill({ json: { success: true, data: [] } }),
+    route.fulfill({
+      json: {
+        success: true,
+        data: { configured: false, model: 'gpt-4.1-mini' },
+      },
+    }),
   );
   const started = Date.now();
-  await page.goto('/e2e-tests');
+  await page.goto('/chat');
   await expect(
-    page.getByRole('heading', { name: 'E2E Tests', exact: true }),
+    page.getByRole('heading', { name: 'Messaging Chat', exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText('No scenarios yet. Save a policy to start your first demo.'),
-  ).toBeVisible();
+  await expect(page.getByRole('log', { name: 'Conversation' })).toBeVisible();
   const iconModules = scriptRequests.filter((url) =>
     url.includes('/@tabler/icons-react/dist/'),
   );

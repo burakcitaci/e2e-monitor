@@ -22,8 +22,8 @@ const data = {
   },
   navMain: [
     {
-      title: "E2E Tests",
-      url: "/e2e-tests",
+      title: "Messaging Chat",
+      url: "/chat",
       icon: IconDashboard,
     },
     {
