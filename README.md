@@ -137,8 +137,12 @@ The default model is `gemini-3.5-flash-lite`, which offers a quota-limited free 
 Use a free-tier Google project to avoid paid API usage.
 Click **Messaging Chat** on the main **Tracking Messages** page to open a
 right-side sheet. It fills the screen width on mobile and preserves conversations
-and prepared drafts when closed and reopened on the same page. **New chat** or
-leaving the monitor page clears that conversation. Chat is not a sidebar menu;
+and prepared drafts when closed and reopened on the same page. **Chat history**
+lists saved conversations, newest first, with pages of 20. Select a conversation
+to restore its transcript and planning mode and continue it after a reload or API
+restart. **New chat** starts a separate conversation; previous chats remain saved.
+Old drafts do not regain an active Send button when selected from history—ask
+the assistant to prepare a fresh draft. Chat is not a sidebar menu;
 <http://localhost:4200/chat> remains available for existing links.
 
 For example, ask:
@@ -150,7 +154,8 @@ Use the **Structured output / Tool calling** toggle to choose the planning mode.
 Structured output returns a validated JSON draft in one AI response. Tool calling
 uses a separate backend service to execute destination lookup and draft preparation
 functions, returning their results to Gemini before its final reply. Switching
-modes starts a fresh conversation and clears the old draft; the toggle is disabled
+modes starts a fresh conversation and clears the old draft (the previous chat stays
+in history); the toggle is disabled
 while a request is running. Both modes require the same explicit Send click.
 Keys stay in the backend; conversation text and destination names go to Google.
 Quota/rate-limit and temporary capacity errors are displayed without automatic
@@ -164,6 +169,11 @@ Google project's billing tier. See [chat configuration and architecture](docs/me
 - `POST /api/v1/messaging-chat/messages/tools` uses the separate tool-calling
   planner with the same input and reply contracts. Only `list_destinations` and
   `prepare_message` are allowed; no broker-send tool is exposed.
+- `/api/v1/messaging-chat/conversations` stores local chat transcripts and their
+  mode in MongoDB. History contains message content and prepared-draft context;
+  it is shared by browsers connected to this local API. Conversations are bounded
+  to 200 entries / roughly 1 MB. Save failures are visible; **Retry saving** only
+  retries persistence and never republishes a broker message.
 
 ### Send and process messages
 

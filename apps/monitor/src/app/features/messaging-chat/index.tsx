@@ -4,6 +4,7 @@ import { useConversation } from './hooks/useConversation';
 import { ChatComposer } from './components/ChatComposer';
 import { ChatTranscript } from './components/ChatTranscript';
 import { MessagePreview } from './components/MessagePreview';
+import { ChatHistory } from './components/ChatHistory';
 
 export default function MessagingChatPage() {
   const chat = useConversation();
@@ -29,6 +30,11 @@ export function MessagingChatContent({
           New chat
         </Button>
       </header>
+      <ChatHistory
+        selectedId={chat.selectedId}
+        disabled={chat.pending}
+        onSelect={chat.select}
+      />
       <div
         role="group"
         aria-label="Assistant mode"
@@ -72,23 +78,41 @@ export function MessagingChatContent({
           {(status.error ?? chat.error)?.message}
         </p>
       )}
+      {chat.unsaved && (
+        <div role="alert" className="space-y-2 rounded-md border p-3">
+          <p>
+            This entry is not saved yet. Retry saving, or select the chat from
+            history to reload. Retrying only saves history; it never repeats a
+            broker send.
+          </p>
+          <Button
+            variant="outline"
+            disabled={chat.pending}
+            onClick={chat.retrySave}
+          >
+            Retry saving
+          </Button>
+        </div>
+      )}
       <ChatTranscript turns={chat.turns} pending={chat.pending} />
       {chat.ready && (
         <MessagePreview
           draft={chat.ready.draft}
-          pending={chat.pending}
+          pending={chat.pending || chat.unsaved}
           sending={chat.sending}
           onSend={chat.confirm}
           onDismiss={chat.dismiss}
         />
       )}
       <ChatComposer
-        disabled={!status.data?.configured || chat.pending}
+        key={`${chat.selectedId ?? 'new'}-${chat.mode}`}
+        disabled={!status.data?.configured || chat.pending || chat.unsaved}
         onSubmit={chat.ask}
       />
       <p className="text-xs text-muted-foreground">
-        Conversation text and destination names are sent to Google Gemini.
-        Review the draft before sending it to your emulator.
+        Conversation text and destination names are sent to Google Gemini. Chats
+        are saved in your local MongoDB. Review the draft before sending it to
+        your emulator.
       </p>
     </section>
   );

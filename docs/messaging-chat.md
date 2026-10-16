@@ -18,6 +18,7 @@ or fallback to a paid provider. Availability and quotas depend on Google's polic
 Click **Messaging Chat** on the main monitor page to open the assistant in a
 right-side sheet while keeping the message table in place. Closing and reopening the sheet
 preserves the conversation and prepared draft until you leave the monitor page.
+Saved chats are available again from **Chat history** after navigating away or reloading.
 The direct `/chat` page remains available for old links, but is not listed in the sidebar.
 
 Describe the provider, queue/topic, and message, and answer any
@@ -50,6 +51,35 @@ are rejected. Invalid arguments produce tool errors; safety blocks, provider
 errors, and loop exhaustion cannot return a prepared draft. There are no shell,
 arbitrary HTTP, or broker-send tools, automatic retries, or mode fallbacks.
 
+## Saved conversations
+
+User turns are saved before calling the planner. Assistant replies and draft context
+are appended after generation; confirmed-send outcomes are appended after the broker
+accepts the send. Chat history lists metadata only, 20 chats per page sorted by last
+update and ID. Selecting a chat fetches its current transcript and restores its mode.
+New chat and mode changes start a separate conversation without deleting old chats.
+Restored drafts are read-only conversation context; the active Send action is cleared.
+
+`ChatHistoryController` and `ChatHistoryService` store `ChatConversations` in the
+existing `MessageTrackingDb` MongoDB connection, with a unique ID and update-order
+index. Each chat is bounded to 200 entries and 1,000,000 UTF-8 JSON bytes; AI context
+still uses only the most recent 20 turns / roughly 60 KB. Revision-checked atomic
+appends prevent lost updates. UUID turn IDs make uncertain save retries idempotent.
+Conflicts require reselecting the conversation from history before continuing.
+This local dashboard has a shared history store, without per-user accounts or TTL.
+
+- `GET /api/v1/messaging-chat/conversations?page=1` lists summaries.
+- `POST /api/v1/messaging-chat/conversations` creates a UUID/mode record.
+- `GET /api/v1/messaging-chat/conversations/:id` reads the transcript.
+- `POST /api/v1/messaging-chat/conversations/:id/turns` appends a UUID turn using
+  the expected revision. Unknown fields, unsupported roles and oversized input fail validation.
+
+History save errors remain visible with a separate Retry saving action. A successful
+broker send clears its active draft before saving the outcome; a history retry never
+calls a broker. MongoDB persistence and broker acceptance are separate operations,
+so a crash between them can leave an incomplete transcript. Consult message tracking
+for actual delivery state. History is not a broker audit log or an exactly-once ledger.
+
 ## Boundaries
 
 - The shared NestJS `MessagingChatRuntime` handles credentials, bounded input,
@@ -66,10 +96,11 @@ arbitrary HTTP, or broker-send tools, automatic retries, or mode fallbacks.
   composer, and review components. Sending reuses the existing Azure/SQS APIs and
   invalidates tracking queries. Automatic send retries are disabled. FIFO sends
   reuse the draft's deduplication ID on explicit retries.
-- Conversation context lives in browser component state, capped at 20 turns and
-  roughly 60 KB; older turns are dropped. New chat clears it. Conversation text,
+- Active conversation context lives in browser state and saved transcripts live in
+  MongoDB. Planner input is capped at 20 turns and roughly 60 KB. Conversation text,
   proposed message bodies, and destination names are sent to Google when asking
-  the assistant. They are not persisted by this application. Google's free-tier
+  the assistant. Server configuration credentials and opaque Gemini tool signatures
+  are not added to chat history. Text entered into chat is saved as entered. Google's free-tier
   pricing lists use of content for product improvement; review the applicable terms
   before using sensitive data.
 

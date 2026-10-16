@@ -1,7 +1,7 @@
 import { config } from './config';
 import { z, ZodError } from 'zod';
-import type { ChatMode, ChatReply, ChatTurn } from '@e2e-monitor/entities';
-import { chatReplySchema, chatStatusSchema } from './messaging-chat-schemas';
+import type { ChatHistoryPage, ChatMode, ChatReply, ChatTurn, SavedChat, SavedChatTurn } from '@e2e-monitor/entities';
+import { chatHistorySchema, savedChatSchema, chatReplySchema, chatStatusSchema } from './messaging-chat-schemas';
 import {
   trackingMessagesResponseSchema,
   trackingMessageResponseSchema,
@@ -145,6 +145,24 @@ class ApiClient {
     const response = await this.request(mode === 'tools' ? '/messaging-chat/messages/tools' : '/messaging-chat/messages', { method: 'POST', body: JSON.stringify({ messages }) }, apiResponseSchema(chatReplySchema));
     if (!isApiResponse<ChatReply>(response) || !response.success || !response.data) throw new ApiError(500, 'Could not get a chatbot reply.');
     return response.data;
+  }
+
+  private async chatHistoryRequest<T>(path: string, schema: z.ZodType<T>, options?: RequestInit): Promise<T> {
+    const response = await this.request(path, options, apiResponseSchema(schema));
+    if (!isApiResponse<T>(response) || !response.success || response.data === undefined) throw new ApiError(500, 'Chat history request failed.');
+    return response.data;
+  }
+  getChatHistory(page = 1): Promise<ChatHistoryPage> {
+    return this.chatHistoryRequest(`/messaging-chat/conversations?page=${page}`, chatHistorySchema);
+  }
+  getSavedChat(id: string): Promise<SavedChat> {
+    return this.chatHistoryRequest(`/messaging-chat/conversations/${encodeURIComponent(id)}`, savedChatSchema);
+  }
+  createChat(input: { id: string; mode: ChatMode }): Promise<SavedChat> {
+    return this.chatHistoryRequest('/messaging-chat/conversations', savedChatSchema, { method: 'POST', body: JSON.stringify(input) });
+  }
+  appendChatTurn(input: { id: string; revision: number; turn: SavedChatTurn }): Promise<SavedChat> {
+    return this.chatHistoryRequest(`/messaging-chat/conversations/${encodeURIComponent(input.id)}/turns`, savedChatSchema, { method: 'POST', body: JSON.stringify({ revision: input.revision, turn: input.turn }) });
   }
 
   async settleMessage(

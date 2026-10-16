@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { installChatHistory } from './chat-history.mock';
 
 for (const mode of ['structured', 'tools'] as const) {
   for (const [provider, destinationType, destination] of [
@@ -65,6 +66,7 @@ for (const mode of ['structured', 'tools'] as const) {
         }
         await route.fulfill({ json: { success: true, data } });
       });
+      await installChatHistory(page);
       await page.goto('/');
       const launcher = page.getByRole('main').getByRole('button', {
         name: 'Messaging Chat',
@@ -128,6 +130,7 @@ test('chat shows configuration guidance without pretending to call an LLM', asyn
       },
     }),
   );
+  await installChatHistory(page);
   await page.goto('/e2e-tests');
   await expect(page).toHaveURL(/\/chat$/);
   await expect(page.getByRole('alert')).toContainText('GEMINI_API_KEY');
@@ -170,6 +173,7 @@ test('chat keeps a failed send draft available and allows discarding it', async 
         json: { message: 'Emulator unavailable' },
       });
   });
+  await installChatHistory(page);
   await page.goto('/chat');
   await page.getByLabel('Your message').fill('Send hello to AWS queue orders');
   await page.getByRole('button', { name: 'Ask assistant' }).click();
@@ -215,6 +219,7 @@ test('switching chat mode clears the old draft and keeps only the selected mode 
     }
     await route.fulfill({ json: { success: true, data } });
   });
+  await installChatHistory(page);
   await page.goto('/chat');
   await page.getByLabel('Your message').fill('Prepare old payload');
   await page.getByRole('button', { name: 'Ask assistant' }).click();
