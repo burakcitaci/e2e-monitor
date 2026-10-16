@@ -55,7 +55,15 @@ for (const [provider, destinationType, destination] of [
       }
       await route.fulfill({ json: { success: true, data } });
     });
-    await page.goto('/chat');
+    await page.goto('/');
+    const launcher = page.getByRole('main').getByRole('button', {
+      name: 'Messaging Chat',
+      exact: true,
+    });
+    await launcher.click();
+    const popup = page.getByRole('dialog', { name: 'Messaging assistant' });
+    await expect(popup).toBeVisible();
+    await expect(page).toHaveURL('http://localhost:4200/');
     await page
       .getByLabel('Your message')
       .fill(`I want to send to ${provider} ${destinationType} ${destination}`);
@@ -66,6 +74,12 @@ for (const [provider, destinationType, destination] of [
     const review = page.getByRole('region', { name: 'Review message' });
     await expect(review).toContainText(destination);
     expect(sends).toBe(0);
+    await page.keyboard.press('Escape');
+    await expect(popup).toBeHidden();
+    await expect(launcher).toBeFocused();
+    await launcher.click();
+    await expect(review).toContainText(destination);
+    await expect(page.getByRole('log')).toContainText('What message body');
     await review
       .getByRole('button', { name: 'Send message', exact: true })
       .dblclick();

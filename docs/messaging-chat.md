@@ -10,7 +10,12 @@ API. Never set this key in a `VITE_` variable or commit it. The default model is
 `gpt-4.1-mini`; change `OPENAI_MODEL` to another Responses API model supporting
 structured outputs if needed. A ChatGPT subscription does not configure an API key.
 
-Open `/chat`, describe the provider, queue/topic, and message, and answer any
+Click **Messaging Chat** on the main monitor page to open the assistant in a
+popup while keeping the message table in place. Closing and reopening the popup
+preserves the conversation and prepared draft until you leave the monitor page.
+The direct `/chat` page remains available.
+
+Describe the provider, queue/topic, and message, and answer any
 follow-up questions. Review the exact destination and body, then click **Send
 message**. AWS SQS supports queues; Azure Service Bus supports queues and topics.
 The chatbot only prepares drafts for discovered/configured destinations. SQS

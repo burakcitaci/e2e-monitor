@@ -6,10 +6,18 @@ import { ChatTranscript } from './components/ChatTranscript';
 import { MessagePreview } from './components/MessagePreview';
 
 export default function MessagingChatPage() {
-  const status = useChatStatus();
   const chat = useConversation();
+  return <MessagingChatContent chat={chat} />;
+}
+
+export function MessagingChatContent({
+  chat,
+}: {
+  chat: ReturnType<typeof useConversation>;
+}) {
+  const status = useChatStatus();
   return (
-    <main className="p-6 mx-auto w-full max-w-4xl space-y-5">
+    <section className="mx-auto w-full max-w-4xl space-y-5 p-4">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Messaging Chat</h1>
@@ -53,6 +61,6 @@ export default function MessagingChatPage() {
         Conversation text and destination names are sent to OpenAI. Review the
         draft before sending it to your emulator.
       </p>
-    </main>
+    </section>
   );
 }

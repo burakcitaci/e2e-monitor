@@ -8,10 +8,17 @@ import { StatisticsCards } from './components/StatisticsCards';
 import { TrackingMessage } from '@e2e-monitor/entities';
 import { Button } from '../../components/ui/button';
 import { SendMessageDialog } from './components/SendMessageDialog';
-import { Send } from 'lucide-react';
+import { MessageCircle, Send } from 'lucide-react';
+
+const MessagingChatPopup = React.lazy(
+  () => import('../messaging-chat/components/MessagingChatPopup'),
+);
 
 export const MessagesPage = () => {
   const [sendOpen, setSendOpen] = React.useState(false);
+  const [chatOpen, setChatOpen] = React.useState(false);
+  const [chatLoaded, setChatLoaded] = React.useState(false);
+  const chatLauncher = React.useRef<HTMLButtonElement>(null);
   const { data: messages = [], isLoading, error } = useTrackingMessages();
 
   // Calculate statistics by disposition and emulator
@@ -37,18 +44,40 @@ export const MessagesPage = () => {
   return (
     <div className="p-6 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
+        <div>
           <h1 className="text-2xl font-bold">Tracking Messages</h1>
           <h2 className="text-sm text-muted-foreground">
             Send messages and choose how pending broker deliveries are
             processed.
           </h2>
         </div>
-      <Button onClick={() => setSendOpen(true)}>
-          <Send className="mr-2 h-4 w-4" />
-          Send message
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            ref={chatLauncher}
+            variant="outline"
+            onClick={() => {
+              setChatLoaded(true);
+              setChatOpen(true);
+            }}
+          >
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Messaging Chat
+          </Button>
+          <Button onClick={() => setSendOpen(true)}>
+            <Send className="mr-2 h-4 w-4" />
+            Send message
+          </Button>
+        </div>
       </div>
+      {chatLoaded && (
+        <React.Suspense fallback={<p role="status">Loading assistant…</p>}>
+          <MessagingChatPopup
+            open={chatOpen}
+            onOpenChange={setChatOpen}
+            onReturnFocus={() => chatLauncher.current?.focus()}
+          />
+        </React.Suspense>
+      )}
       {sendOpen && <SendMessageDialog onClose={() => setSendOpen(false)} />}
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
         {/* Error Messages */}
