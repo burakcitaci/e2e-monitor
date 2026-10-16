@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ChatTurn, MessageDraft } from '@e2e-monitor/entities';
+import type { ChatMode, ChatTurn, MessageDraft } from '@e2e-monitor/entities';
 import { apiClient } from '../../../lib/api-client';
 import { trackingMessageKeys } from '../../../hooks/api/tracking-messages';
 
@@ -11,9 +11,9 @@ export function useChatStatus() {
   });
 }
 
-export function useChatReply() {
+export function useChatReply(mode: ChatMode = 'structured') {
   return useMutation({
-    mutationFn: (messages: ChatTurn[]) => apiClient.chat(messages),
+    mutationFn: (messages: ChatTurn[]) => apiClient.chat(messages, mode),
     retry: false,
   });
 }

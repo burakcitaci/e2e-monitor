@@ -146,6 +146,12 @@ For example, ask:
 `I want to send a message to AWS queue orders-queue`.
 The assistant asks for missing details, prepares a draft, and sends it only when
 you click **Send message**. No model response can publish a message automatically.
+Use the **Structured output / Tool calling** toggle to choose the planning mode.
+Structured output returns a validated JSON draft in one AI response. Tool calling
+uses a separate backend service to execute destination lookup and draft preparation
+functions, returning their results to Gemini before its final reply. Switching
+modes starts a fresh conversation and clears the old draft; the toggle is disabled
+while a request is running. Both modes require the same explicit Send click.
 Keys stay in the backend; conversation text and destination names go to Google.
 Quota/rate-limit and temporary capacity errors are displayed without automatic
 retries or switching to a paid provider. The application cannot enforce your
@@ -155,6 +161,9 @@ Google project's billing tier. See [chat configuration and architecture](docs/me
   without returning credentials; it does not verify billing or model availability.
 - `POST /api/v1/messaging-chat/messages` prepares a validated draft or asks for
   missing details. Confirming the draft uses the existing broker send endpoints.
+- `POST /api/v1/messaging-chat/messages/tools` uses the separate tool-calling
+  planner with the same input and reply contracts. Only `list_destinations` and
+  `prepare_message` are allowed; no broker-send tool is exposed.
 
 ### Send and process messages
 

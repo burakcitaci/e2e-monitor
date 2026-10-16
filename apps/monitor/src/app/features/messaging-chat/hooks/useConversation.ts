@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { ChatTurn, MessageDraft } from '@e2e-monitor/entities';
+import type { ChatMode, ChatTurn, MessageDraft } from '@e2e-monitor/entities';
 import { useChatReply, useSendChatDraft } from '../api/hooks';
 
 export interface TranscriptTurn extends ChatTurn {
@@ -14,12 +14,10 @@ const greeting: TranscriptTurn = {
 };
 
 function history(turns: TranscriptTurn[]): ChatTurn[] {
-  const messages = turns
-    .slice(-20)
-    .map(({ role, content, context }) => ({
-      role,
-      content: context ?? content,
-    }));
+  const messages = turns.slice(-20).map(({ role, content, context }) => ({
+    role,
+    content: context ?? content,
+  }));
   while (
     messages.length > 1 &&
     new TextEncoder().encode(JSON.stringify(messages)).byteLength > 60000
@@ -29,13 +27,14 @@ function history(turns: TranscriptTurn[]): ChatTurn[] {
 }
 
 export function useConversation() {
+  const [mode, setMode] = useState<ChatMode>('structured');
   const [turns, setTurns] = useState<TranscriptTurn[]>([greeting]);
   const [ready, setReady] = useState<{
     draft: MessageDraft;
     requestId: string;
   } | null>(null);
   const busy = useRef(false);
-  const reply = useChatReply();
+  const reply = useChatReply(mode);
   const send = useSendChatDraft();
   const pending = reply.isPending || send.isPending;
 
@@ -101,6 +100,12 @@ export function useConversation() {
   }
 
   return {
+    mode,
+    changeMode: (next: ChatMode) => {
+      if (busy.current || next === mode) return;
+      reset();
+      setMode(next);
+    },
     turns,
     ready,
     pending,

@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import type { AppConfigService } from '../common/app-config.service';
 import type { AwsSqsService } from '../aws-sqs/aws-sqs.service';
 import { MessagingChatService } from './messaging-chat.service';
+import { MessagingChatRuntime } from './messaging-chat.runtime';
 
 const draft = {
   provider: 'azure',
@@ -47,17 +48,19 @@ describe('LLM messaging planner', () => {
     });
     queues.mockResolvedValue([{ name: 'orders' }]);
     service = new MessagingChatService(
-      config,
-      {
-        getServiceBusConfiguration: () => ({
-          UserConfig: {
-            Namespaces: [
-              { Queues: [{ Name: 'orders' }], Topics: [{ Name: 'events' }] },
-            ],
-          },
-        }),
-      } as unknown as AppConfigService,
-      { listQueueResources: queues } as unknown as AwsSqsService,
+      new MessagingChatRuntime(
+        config,
+        {
+          getServiceBusConfiguration: () => ({
+            UserConfig: {
+              Namespaces: [
+                { Queues: [{ Name: 'orders' }], Topics: [{ Name: 'events' }] },
+              ],
+            },
+          }),
+        } as unknown as AppConfigService,
+        { listQueueResources: queues } as unknown as AwsSqsService,
+      ),
     );
     fetchMock.mockResolvedValue(
       result({ reply: 'Review this message.', draft }),

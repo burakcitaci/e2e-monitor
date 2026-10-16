@@ -26,11 +26,36 @@ message**. AWS SQS supports queues; Azure Service Bus supports queues and topics
 The chatbot only prepares drafts for discovered/configured destinations. SQS
 queues must already exist; create resources using the existing messaging tools.
 
+## Planning modes
+
+The mode toggle defaults to **Structured output**. Switching modes clears the
+conversation and pending draft; it is disabled during requests. Mode selection
+and the conversation survive closing/reopening the sheet while the monitor stays
+mounted. Both modes keep broker publishing behind the explicit Send button.
+
+- **Structured output** uses `MessagingChatService` and
+  `POST /api/v1/messaging-chat/messages`. It requests a JSON-schema draft in one
+  Gemini response and validates that draft against the destination catalog.
+- **Tool calling** uses the separate `MessagingChatToolsService` and
+  `POST /api/v1/messaging-chat/messages/tools`. Gemini may call
+  `list_destinations` (returns a local catalog snapshot) or `prepare_message`
+  (validates and prepares a draft without sending). The backend returns real
+  function results to the model and preserves call IDs and thought signatures.
+  A normal text response completes the conversation turn; only a successfully
+  validated preparation can produce a sendable draft.
+
+Tool mode allows at most four Gemini requests and eight function calls per turn,
+with a shared 30-second AI-request deadline. Unknown tools and ambiguous batches
+are rejected. Invalid arguments produce tool errors; safety blocks, provider
+errors, and loop exhaustion cannot return a prepared draft. There are no shell,
+arbitrary HTTP, or broker-send tools, automatic retries, or mode fallbacks.
+
 ## Boundaries
 
-- NestJS `MessagingChatService` calls Gemini's `generateContent` API using native
-  fetch, a 30-second timeout, and a JSON-schema response format. Assistant turns are
-  mapped to Gemini's model role; system instructions remain separate.
+- The shared NestJS `MessagingChatRuntime` handles credentials, bounded input,
+  the destination catalog, Gemini `generateContent` transport, and draft/response
+  validation. The structured and tool-calling services have separate orchestration.
+  Assistant turns map to Gemini's model role; system instructions remain separate.
 - The backend provides destination names from Azure configuration and SQS
   discovery. Credentials, connection strings, and queue URLs are not model context.
   At most 200 destination entries are provided in one request.
@@ -67,4 +92,5 @@ handling, and configuration guidance. A live LLM check additionally requires a
 valid API key and model access; tests do not spend API credits.
 
 Protocol references: [Gemini structured outputs](https://ai.google.dev/gemini-api/docs/generate-content/structured-output)
-and [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing).
+and [GenerateContent tools and function responses](https://ai.google.dev/api/generate-content).
+See [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) for free-tier limits.

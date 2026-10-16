@@ -1,3 +1,5 @@
+export type ChatMode = 'structured' | 'tools';
+
 export interface ChatTurn {
   role: 'user' | 'assistant';
   content: string;

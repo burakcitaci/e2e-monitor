@@ -49,6 +49,17 @@ describe('Chat query and send hooks', () => {
       expect(result.current.data?.reply).toBe('Which queue?'),
     );
   });
+  it('routes tool mode through the separate planner without sending', async () => {
+    api.chat.mockResolvedValue({ reply: 'Which destination?', draft: null });
+    const turns = [{ role: 'user' as const, content: 'List queues' }];
+    const { result } = renderHook(() => useChatReply('tools'), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync(turns);
+    });
+    expect(api.chat).toHaveBeenCalledWith(turns, 'tools');
+    expect(api.sendMessage).not.toHaveBeenCalled();
+    expect(api.sendSqsMessage).not.toHaveBeenCalled();
+  });
   it('sends confirmed Azure drafts and invalidates tracking', async () => {
     api.sendMessage.mockResolvedValue({ messageId: 'id', queueName: 'events' });
     const invalidate = vi.spyOn(client, 'invalidateQueries');

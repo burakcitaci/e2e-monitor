@@ -29,6 +29,35 @@ export function MessagingChatContent({
           New chat
         </Button>
       </header>
+      <div
+        role="group"
+        aria-label="Assistant mode"
+        className="flex flex-wrap gap-2"
+      >
+        <Button
+          variant={chat.mode === 'structured' ? 'default' : 'outline'}
+          aria-pressed={chat.mode === 'structured'}
+          disabled={chat.pending}
+          onClick={() => chat.changeMode('structured')}
+        >
+          Structured output
+        </Button>
+        <Button
+          variant={chat.mode === 'tools' ? 'default' : 'outline'}
+          aria-pressed={chat.mode === 'tools'}
+          disabled={chat.pending}
+          onClick={() => chat.changeMode('tools')}
+        >
+          Tool calling
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {chat.mode === 'structured'
+          ? 'Returns a message draft in one response.'
+          : 'Uses destination lookup and draft preparation tools before replying.'}{' '}
+        Switching modes starts a new chat. Sending always requires your
+        confirmation.
+      </p>
       {status.isLoading && (
         <p role="status">Checking assistant configuration…</p>
       )}

@@ -1,6 +1,6 @@
 import { config } from './config';
 import { z, ZodError } from 'zod';
-import type { ChatReply, ChatTurn } from '@e2e-monitor/entities';
+import type { ChatMode, ChatReply, ChatTurn } from '@e2e-monitor/entities';
 import { chatReplySchema, chatStatusSchema } from './messaging-chat-schemas';
 import {
   trackingMessagesResponseSchema,
@@ -141,8 +141,8 @@ class ApiClient {
     return response.data;
   }
 
-  async chat(messages: ChatTurn[]): Promise<ChatReply> {
-    const response = await this.request('/messaging-chat/messages', { method: 'POST', body: JSON.stringify({ messages }) }, apiResponseSchema(chatReplySchema));
+  async chat(messages: ChatTurn[], mode: ChatMode = 'structured'): Promise<ChatReply> {
+    const response = await this.request(mode === 'tools' ? '/messaging-chat/messages/tools' : '/messaging-chat/messages', { method: 'POST', body: JSON.stringify({ messages }) }, apiResponseSchema(chatReplySchema));
     if (!isApiResponse<ChatReply>(response) || !response.success || !response.data) throw new ApiError(500, 'Could not get a chatbot reply.');
     return response.data;
   }
