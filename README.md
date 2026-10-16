@@ -38,7 +38,7 @@ The local defaults work without an environment file. Copy `.env.example` to
 | Service | Address |
 | --- | --- |
 | Monitor | <http://localhost:4200> |
-| API | <http://localhost:3000/api/v1> |
+| API health | <http://localhost:3000/api/v1/health> |
 | Azure Service Bus emulator | `localhost:5672` (AMQP), `localhost:5300` |
 | LocalStack SQS | <http://localhost:4566> |
 | MongoDB | `mongodb://localhost:27017` |

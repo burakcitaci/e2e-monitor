@@ -8,6 +8,8 @@ for (const [provider, destinationType, destination] of [
   test(`chat prepares and confirms ${provider} ${destinationType} messages`, async ({
     page,
   }) => {
+    if (provider === 'aws')
+      await page.setViewportSize({ width: 390, height: 844 });
     let plans = 0;
     let sends = 0;
     await page.route('**/api/v1/**', async (route) => {
@@ -63,6 +65,8 @@ for (const [provider, destinationType, destination] of [
     await launcher.click();
     const popup = page.getByRole('dialog', { name: 'Messaging assistant' });
     await expect(popup).toBeVisible();
+    await expect(popup).toHaveCSS('right', '0px');
+    await expect(popup).toHaveCSS('top', '0px');
     await expect(page).toHaveURL('http://localhost:4200/');
     await page
       .getByLabel('Your message')
@@ -77,6 +81,9 @@ for (const [provider, destinationType, destination] of [
     await page.keyboard.press('Escape');
     await expect(popup).toBeHidden();
     await expect(launcher).toBeFocused();
+    await expect(
+      page.getByRole('button', { name: 'Messaging Chat', exact: true }),
+    ).toHaveCount(1);
     await launcher.click();
     await expect(review).toContainText(destination);
     await expect(page.getByRole('log')).toContainText('What message body');

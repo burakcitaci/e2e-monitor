@@ -22,11 +22,6 @@ const data = {
   },
   navMain: [
     {
-      title: "Messaging Chat",
-      url: "/chat",
-      icon: IconDashboard,
-    },
-    {
     title: "Main",
     url: "/",
     icon: IconDashboard,

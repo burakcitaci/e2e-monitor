@@ -4,8 +4,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import * as Joi from 'joi';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { AppConfigService } from './common/app-config.service';
 import { MessageModule } from './messages/messages.module';
@@ -80,9 +78,7 @@ import { MessagingChatModule } from './messaging-chat/messaging-chat.module';
     AwsSqsModule,
     HealthModule,
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,

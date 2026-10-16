@@ -16,9 +16,9 @@ want no API charges. Quota exhaustion is shown as an error without automatic ret
 or fallback to a paid provider. Availability and quotas depend on Google's policies.
 
 Click **Messaging Chat** on the main monitor page to open the assistant in a
-popup while keeping the message table in place. Closing and reopening the popup
+right-side sheet while keeping the message table in place. Closing and reopening the sheet
 preserves the conversation and prepared draft until you leave the monitor page.
-The direct `/chat` page remains available.
+The direct `/chat` page remains available for old links, but is not listed in the sidebar.
 
 Describe the provider, queue/topic, and message, and answer any
 follow-up questions. Review the exact destination and body, then click **Send

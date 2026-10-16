@@ -33,7 +33,6 @@ export function App() {
  const NAV_ITEMS = [
   { title: "Messaging Monitor", url: "/" },
   { title: "Messaging Resources", url: "/messaging-resources" },
-  { title: "Messaging Chat", url: "/chat" },
 ]
 
   return (

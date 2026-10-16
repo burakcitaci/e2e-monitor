@@ -10,8 +10,8 @@ import { Button } from '../../components/ui/button';
 import { SendMessageDialog } from './components/SendMessageDialog';
 import { MessageCircle, Send } from 'lucide-react';
 
-const MessagingChatPopup = React.lazy(
-  () => import('../messaging-chat/components/MessagingChatPopup'),
+const MessagingChatSheet = React.lazy(
+  () => import('../messaging-chat/components/MessagingChatSheet'),
 );
 
 export const MessagesPage = () => {
@@ -71,7 +71,7 @@ export const MessagesPage = () => {
       </div>
       {chatLoaded && (
         <React.Suspense fallback={<p role="status">Loading assistant…</p>}>
-          <MessagingChatPopup
+          <MessagingChatSheet
             open={chatOpen}
             onOpenChange={setChatOpen}
             onReturnFocus={() => chatLauncher.current?.focus()}
