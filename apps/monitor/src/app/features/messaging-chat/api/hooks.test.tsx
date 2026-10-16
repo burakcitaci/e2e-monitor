@@ -29,7 +29,7 @@ describe('Chat query and send hooks', () => {
   it('loads readiness without exposing credentials', async () => {
     api.getChatStatus.mockResolvedValue({
       configured: false,
-      model: 'gpt-4.1-mini',
+      model: 'gemini-3.5-flash-lite',
     });
     const { result } = renderHook(() => useChatStatus(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -45,7 +45,9 @@ describe('Chat query and send hooks', () => {
     });
     expect(api.sendMessage).not.toHaveBeenCalled();
     expect(api.sendSqsMessage).not.toHaveBeenCalled();
-    await waitFor(() => expect(result.current.data?.reply).toBe('Which queue?'));
+    await waitFor(() =>
+      expect(result.current.data?.reply).toBe('Which queue?'),
+    );
   });
   it('sends confirmed Azure drafts and invalidates tracking', async () => {
     api.sendMessage.mockResolvedValue({ messageId: 'id', queueName: 'events' });

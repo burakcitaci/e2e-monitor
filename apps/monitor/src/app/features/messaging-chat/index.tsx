@@ -34,8 +34,8 @@ export function MessagingChatContent({
       )}
       {status.data && !status.data.configured && (
         <p role="alert" className="rounded-md border p-4">
-          Set OPENAI_API_KEY in the backend environment and restart the API to
-          enable the assistant. OPENAI_MODEL is optional.
+          Set GEMINI_API_KEY in the backend environment and restart the API to
+          enable the assistant. GEMINI_MODEL is optional.
         </p>
       )}
       {(status.error ?? chat.error) && (
@@ -58,8 +58,8 @@ export function MessagingChatContent({
         onSubmit={chat.ask}
       />
       <p className="text-xs text-muted-foreground">
-        Conversation text and destination names are sent to OpenAI. Review the
-        draft before sending it to your emulator.
+        Conversation text and destination names are sent to Google Gemini.
+        Review the draft before sending it to your emulator.
       </p>
     </section>
   );

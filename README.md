@@ -124,7 +124,11 @@ finish starting. Inspect them with `docker compose ps` and
 
 ### Messaging chatbot
 
-Open **Messaging Chat** at <http://localhost:4200/chat>. For example, ask:
+Set `GEMINI_API_KEY` in the root `.env` using a key from
+[Google AI Studio](https://aistudio.google.com/api-keys), then restart the backend.
+The default model is `gemini-3.5-flash-lite`, which offers a quota-limited free tier.
+Use a free-tier Google project to avoid paid API usage.
+Open **Messaging Chat** from the main page (or <http://localhost:4200/chat>). For example, ask:
 `Send {"hello":"world"} to Azure topic application-events` or
 `I want to send a message to AWS queue orders-queue`.
 The assistant asks for missing details, prepares a draft, and sends it only when

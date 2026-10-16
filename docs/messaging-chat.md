@@ -5,10 +5,15 @@ manual broker settlement, resource discovery, and Vite performance fixes remain.
 
 ## Setup
 
-Set `OPENAI_API_KEY` in the backend's local `.env` or environment and restart the
+Create a key in [Google AI Studio](https://aistudio.google.com/api-keys).
+Set `GEMINI_API_KEY` in the backend's root `.env` or environment and restart the
 API. Never set this key in a `VITE_` variable or commit it. The default model is
-`gpt-4.1-mini`; change `OPENAI_MODEL` to another Responses API model supporting
-structured outputs if needed. A ChatGPT subscription does not configure an API key.
+`gemini-3.5-flash-lite`; `GEMINI_MODEL` can select another Gemini model supporting
+structured outputs. OpenAI keys are not used by this integration.
+The default model offers a free tier with quotas; this app cannot select or enforce
+your Google project's billing tier. Keep the Google project on the free tier if you
+want no API charges. Quota exhaustion is shown as an error without automatic retries
+or fallback to a paid provider. Availability and quotas depend on Google's policies.
 
 Click **Messaging Chat** on the main monitor page to open the assistant in a
 popup while keeping the message table in place. Closing and reopening the popup
@@ -23,8 +28,9 @@ queues must already exist; create resources using the existing messaging tools.
 
 ## Boundaries
 
-- NestJS `MessagingChatService` calls the OpenAI Responses API using native fetch,
-  a 30-second timeout, `store: false`, and a strict JSON-schema response format.
+- NestJS `MessagingChatService` calls Gemini's `generateContent` API using native
+  fetch, a 30-second timeout, and a JSON-schema response format. Assistant turns are
+  mapped to Gemini's model role; system instructions remain separate.
 - The backend provides destination names from Azure configuration and SQS
   discovery. Credentials, connection strings, and queue URLs are not model context.
   At most 200 destination entries are provided in one request.
@@ -37,8 +43,10 @@ queues must already exist; create resources using the existing messaging tools.
   reuse the draft's deduplication ID on explicit retries.
 - Conversation context lives in browser component state, capped at 20 turns and
   roughly 60 KB; older turns are dropped. New chat clears it. Conversation text,
-  proposed message bodies, and destination names are sent to OpenAI when asking
-  the assistant. They are not persisted by this application.
+  proposed message bodies, and destination names are sent to Google when asking
+  the assistant. They are not persisted by this application. Google's free-tier
+  pricing lists use of content for product improvement; review the applicable terms
+  before using sensitive data.
 
 `GET /api/v1/messaging-chat/status` reports configuration readiness without
 returning secrets. `POST /api/v1/messaging-chat/messages` accepts user/assistant
@@ -58,5 +66,5 @@ browser tests verify clarification, draft review, explicit Azure/AWS sends, erro
 handling, and configuration guidance. A live LLM check additionally requires a
 valid API key and model access; tests do not spend API credits.
 
-Protocol references: [Responses structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
-and [GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini).
+Protocol references: [Gemini structured outputs](https://ai.google.dev/gemini-api/docs/generate-content/structured-output)
+and [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing).

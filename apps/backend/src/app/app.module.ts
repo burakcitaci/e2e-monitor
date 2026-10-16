@@ -27,21 +27,21 @@ import { MessagingChatModule } from './messaging-chat/messaging-chat.module';
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
-        OPENAI_API_KEY: Joi.string().allow('').default(''),
-        OPENAI_MODEL: Joi.string().default('gpt-4.1-mini'),
+        GEMINI_API_KEY: Joi.string().allow('').default(''),
+        GEMINI_MODEL: Joi.string().default('gemini-3.5-flash-lite'),
         MESSAGE_PROCESSING_MODE: Joi.string()
           .valid('manual', 'automatic')
           .default('manual'),
         CORS_ORIGIN: Joi.string().default('http://localhost:4200'),
         SERVICE_BUS_CONNECTION_STRING: Joi.string().default(
-          'Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;UseDevelopmentEmulator=true'
+          'Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;UseDevelopmentEmulator=true',
         ),
         SERVICE_BUS_NAMESPACE: Joi.string().default('sbemulatorns'),
         SERVICE_BUS_QUEUE: Joi.string().default('orders-queue'),
         SERVICE_BUS_MAX_RETRIES: Joi.number().default(3),
         SERVICE_BUS_RETRY_DELAY: Joi.number().default(1000),
         MONGO_URI: Joi.string().default(
-          'mongodb://testuser:testpass@localhost:27017/'
+          'mongodb://testuser:testpass@localhost:27017/',
         ),
         MONGO_MESSAGE_DB: Joi.string().default('MessageTrackingDb'),
         MONGO_AUTH_SOURCE: Joi.string().default('admin'),

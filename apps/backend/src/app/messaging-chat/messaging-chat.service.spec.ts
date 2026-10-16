@@ -26,11 +26,10 @@ const messages = [
 const result = (value: unknown) =>
   new Response(
     JSON.stringify({
-      status: 'completed',
-      output: [
+      candidates: [
         {
-          type: 'message',
-          content: [{ type: 'output_text', text: JSON.stringify(value) }],
+          finishReason: 'STOP',
+          content: { parts: [{ text: JSON.stringify(value) }] },
         },
       ],
     }),
@@ -43,8 +42,8 @@ describe('LLM messaging planner', () => {
   const fetchMock = jest.spyOn(globalThis, 'fetch');
   beforeEach(() => {
     config = new ConfigService({
-      OPENAI_API_KEY: 'test-key',
-      OPENAI_MODEL: 'gpt-4.1-mini',
+      GEMINI_API_KEY: 'test-key',
+      GEMINI_MODEL: 'gemini-3.5-flash-lite',
     });
     queues.mockResolvedValue([{ name: 'orders' }]);
     service = new MessagingChatService(
@@ -77,19 +76,23 @@ describe('LLM messaging planner', () => {
     const request = fetchMock.mock.calls[0][1];
     const payload = JSON.parse(request?.body as string);
     expect(payload).toMatchObject({
-      model: 'gpt-4.1-mini',
-      store: false,
-      input: messages,
-      text: { format: { type: 'json_schema', strict: true } },
+      contents: [{ role: 'user', parts: [{ text: messages[0].content }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: { type: 'object' },
+      },
     });
-    expect(payload.instructions).toContain('orders');
+    expect(payload.systemInstruction.parts[0].text).toContain('orders');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
+    );
     expect(JSON.stringify(payload)).not.toContain('test-key');
     expect(request?.headers).toEqual(
-      expect.objectContaining({ Authorization: 'Bearer test-key' }),
+      expect.objectContaining({ 'x-goog-api-key': 'test-key' }),
     );
     expect(service.getStatus()).toEqual({
       configured: true,
-      model: 'gpt-4.1-mini',
+      model: 'gemini-3.5-flash-lite',
     });
   });
   it('supports follow-up questions instead of inventing a message', async () => {
@@ -99,6 +102,73 @@ describe('LLM messaging planner', () => {
     await expect(service.reply(messages)).resolves.toMatchObject({
       draft: null,
     });
+  });
+  it('maps assistant turns to Gemini model turns and preserves conversation text', async () => {
+    const conversation = [
+      { role: 'assistant' as const, content: 'Welcome to messaging chat.' },
+      { role: 'user' as const, content: 'Send a message' },
+      { role: 'assistant' as const, content: 'Which destination?' },
+      ...messages,
+    ];
+    await service.reply(conversation);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(payload.contents).toEqual([
+      { role: 'user', parts: [{ text: 'Send a message' }] },
+      { role: 'model', parts: [{ text: 'Which destination?' }] },
+      { role: 'user', parts: [{ text: messages[0].content }] },
+    ]);
+  });
+  it.each([
+    [400, 'Check GEMINI_API_KEY'],
+    [403, 'Check GEMINI_API_KEY'],
+    [404, 'Check GEMINI_MODEL'],
+    [429, 'free-tier limits'],
+    [503, 'temporarily unavailable'],
+  ])('explains Gemini status %s without retrying', async (status, reason) => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('{}', { status: status as number }),
+    );
+    await expect(service.reply(messages)).rejects.toThrow(reason as string);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('ignores thought parts and never accepts a safety-blocked candidate', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: {
+                parts: [
+                  { thought: true, text: 'internal thoughts' },
+                  { text: JSON.stringify({ reply: 'Review', draft }) },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    await expect(service.reply(messages)).resolves.toMatchObject({ draft });
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: 'SAFETY',
+              content: {
+                parts: [{ text: JSON.stringify({ reply: 'Review', draft }) }],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    await expect(service.reply(messages)).resolves.toMatchObject({
+      draft: null,
+    });
+    fetchMock.mockResolvedValueOnce(new Response('{}'));
+    await expect(service.reply(messages)).rejects.toThrow('incomplete');
   });
   it.each([
     { ...draft, destination: 'invented' },
@@ -132,8 +202,8 @@ describe('LLM messaging planner', () => {
     expect((await service.reply(messages)).draft?.provider).toBe('azure');
   });
   it('fails clearly without credentials and makes no AI request', async () => {
-    config.set('OPENAI_API_KEY', '');
-    await expect(service.reply(messages)).rejects.toThrow('Set OPENAI_API_KEY');
+    config.set('GEMINI_API_KEY', '');
+    await expect(service.reply(messages)).rejects.toThrow('Set GEMINI_API_KEY');
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it.each([401, 429, 500])(
@@ -154,17 +224,12 @@ describe('LLM messaging planner', () => {
       'could not be reached',
     );
     fetchMock.mockResolvedValueOnce(
-      new Response('{"status":"incomplete","output":[]}'),
+      new Response('{"candidates":[{"finishReason":"MAX_TOKENS"}]}'),
     );
     await expect(service.reply(messages)).rejects.toThrow('incomplete');
     fetchMock.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({
-          status: 'completed',
-          output: [
-            { type: 'message', content: [{ type: 'refusal', refusal: 'No' }] },
-          ],
-        }),
+        JSON.stringify({ promptFeedback: { blockReason: 'SAFETY' } }),
       ),
     );
     await expect(service.reply(messages)).resolves.toMatchObject({
@@ -173,11 +238,10 @@ describe('LLM messaging planner', () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          status: 'completed',
-          output: [
+          candidates: [
             {
-              type: 'message',
-              content: [{ type: 'output_text', text: 'not json' }],
+              finishReason: 'STOP',
+              content: { parts: [{ text: 'not json' }] },
             },
           ],
         }),

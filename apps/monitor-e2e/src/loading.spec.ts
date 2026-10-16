@@ -11,7 +11,7 @@ test('initial route avoids loading thousands of individual icon modules', async 
     route.fulfill({
       json: {
         success: true,
-        data: { configured: false, model: 'gpt-4.1-mini' },
+        data: { configured: false, model: 'gemini-3.5-flash-lite' },
       },
     }),
   );

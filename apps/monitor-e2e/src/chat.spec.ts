@@ -14,7 +14,7 @@ for (const [provider, destinationType, destination] of [
       const path = new URL(route.request().url()).pathname;
       let data: unknown = [];
       if (path.endsWith('/messaging-chat/status'))
-        data = { configured: true, model: 'gpt-4.1-mini' };
+        data = { configured: true, model: 'gemini-3.5-flash-lite' };
       else if (path.endsWith('/messaging-chat/messages')) {
         plans++;
         const conversation = route.request().postDataJSON().messages;
@@ -96,13 +96,13 @@ test('chat shows configuration guidance without pretending to call an LLM', asyn
     route.fulfill({
       json: {
         success: true,
-        data: { configured: false, model: 'gpt-4.1-mini' },
+        data: { configured: false, model: 'gemini-3.5-flash-lite' },
       },
     }),
   );
   await page.goto('/e2e-tests');
   await expect(page).toHaveURL(/\/chat$/);
-  await expect(page.getByRole('alert')).toContainText('OPENAI_API_KEY');
+  await expect(page.getByRole('alert')).toContainText('GEMINI_API_KEY');
   await expect(page.getByLabel('Your message')).toBeDisabled();
   await expect(
     page.getByRole('heading', { name: 'Messaging Chat' }),
@@ -118,7 +118,7 @@ test('chat keeps a failed send draft available and allows discarding it', async 
       await route.fulfill({
         json: {
           success: true,
-          data: { configured: true, model: 'gpt-4.1-mini' },
+          data: { configured: true, model: 'gemini-3.5-flash-lite' },
         },
       });
     else if (path.endsWith('/messaging-chat/messages'))
