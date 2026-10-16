@@ -4,6 +4,9 @@ Emulator Monitor is a local development dashboard for Azure Service Bus and AWS
 SQS. It combines a React monitor, a NestJS API, MongoDB-backed message tracking,
 and containerized messaging emulators in one Nx workspace.
 
+The workspace uses Nx 23, TypeScript 6, Vite 8, and Vitest 5. Dependency versions
+are pinned by `yarn.lock`; use `yarn install --frozen-lockfile` when onboarding.
+
 ## Workspace
 
 | Project | Purpose | Main technology |
@@ -35,6 +38,11 @@ yarn dev
 The messaging dashboard works without an environment file. Copy `.env.example`
 to `.env` before starting the backend when you need overrides or want to enable
 the Gemini assistant. Restart the backend after changing `.env`.
+
+On PowerShell, create the local file with `Copy-Item .env.example .env` (only if
+`.env` does not already exist). Set `GEMINI_API_KEY` in that file to enable chat.
+The root `.env` and frontend `.env.local` files are Git-ignored and stay on your
+machine. Commit only placeholder values in `.env.example`; never commit API keys.
 
 | Service | Address |
 | --- | --- |
