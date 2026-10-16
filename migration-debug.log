@@ -1,0 +1,33 @@
+
+[7m[1m[36m NX [39m[22m[27m  Running 'yarn --ignore-scripts' to make sure necessary packages are installed
+
+yarn install v1.22.22
+[1/5] Validating package.json...
+[2/5] Resolving packages...
+(node:7560) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+warning Resolution field "vite@7.3.6" is incompatible with requested version "vite@8.3.4"
+[3/5] Fetching packages...
+[4/5] Linking dependencies...
+warning "@nx/eslint-plugin > @typescript-eslint/utils@8.46.3" has incorrect peer dependency "typescript@>=4.8.4 <6.0.0".
+warning "@nx/eslint-plugin > @typescript-eslint/type-utils@8.46.3" has incorrect peer dependency "typescript@>=4.8.4 <6.0.0".
+warning "@nx/eslint-plugin > @typescript-eslint/utils > @typescript-eslint/typescript-estree@8.46.3" has incorrect peer dependency "typescript@>=4.8.4 <6.0.0".
+warning "@nx/eslint-plugin > @typescript-eslint/utils > @typescript-eslint/typescript-estree > @typescript-eslint/project-service@8.46.3" has incorrect peer dependency "typescript@>=4.8.4 <6.0.0".
+warning "@nx/eslint-plugin > @typescript-eslint/utils > @typescript-eslint/typescript-estree > @typescript-eslint/tsconfig-utils@8.46.3" has incorrect peer dependency "typescript@>=4.8.4 <6.0.0".
+warning " > @vitejs/plugin-react@6.1.2" has incorrect peer dependency "vite@^8.0.0".
+warning Workspaces can only be enabled in private projects.
+warning Workspaces can only be enabled in private projects.
+warning Workspaces can only be enabled in private projects.
+warning Workspaces can only be enabled in private projects.
+warning Workspaces can only be enabled in private projects.
+warning Workspaces can only be enabled in private projects.
+error Error: EPERM: operation not permitted, unlink 'C:\Users\burak\source\repos\emulator-monitor\node_modules\@swc\core-win32-x64-msvc\swc.win32-x64-msvc.node'
+info Visit https://yarnpkg.com/en/docs/cli/install for documentation about this command.
+
+[7m[1m[31m NX [39m[22m[27m  [31mCommand failed: yarn --ignore-scripts[39m
+
+Error: Command failed: yarn --ignore-scripts
+    at ChildProcess.<anonymous> (C:\Users\burak\source\repos\emulator-monitor\node_modules\nx\dist\src\command-line\migrate\execute-migration.js:143:20)
+    at ChildProcess.emit (node:events:509:28)
+    at maybeClose (node:internal/child_process:1141:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:306:5)

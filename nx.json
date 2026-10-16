@@ -122,5 +122,7 @@
         "linter": "eslint"
       }
     }
-  }
+  },
+  "analytics": false,
+  "nxCloudId": "6ad135aa5a726f225c48a4ef"
 }

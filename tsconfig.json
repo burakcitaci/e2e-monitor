@@ -12,5 +12,8 @@
     {
       "path": "./libs/shared/entities"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }
