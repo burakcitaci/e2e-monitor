@@ -12,6 +12,7 @@ import { MessagingChatController } from './messaging-chat.controller';
 import { MessagingChatService } from './messaging-chat.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatToolsService } from './messaging-chat-tools.service';
+import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MessagingChatToolsService } from './messaging-chat-tools.service';
   ],
   controllers: [MessagingChatController, ChatHistoryController],
   providers: [
+    MessagingChatKnowledgeService,
     ChatHistoryService,
     MessagingChatRuntime,
     MessagingChatService,

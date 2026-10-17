@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { ChatReply, ChatTurn } from '@e2e-monitor/entities';
 import { AppConfigService } from '../common/app-config.service';
 import { AwsSqsService } from '../aws-sqs/aws-sqs.service';
+import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 
 export const replySchema = z
   .object({
@@ -111,6 +112,7 @@ export class MessagingChatRuntime {
     private readonly config: ConfigService,
     private readonly appConfig: AppConfigService,
     private readonly sqs: AwsSqsService,
+    private readonly knowledge: MessagingChatKnowledgeService,
   ) {}
 
   getStatus() {
@@ -168,6 +170,7 @@ export class MessagingChatRuntime {
       key,
       catalog,
       awsAvailable,
+      knowledge: this.knowledge.retrieve(messages.at(-1)?.content ?? ''),
       contents: messages
         .slice(messages.findIndex((message) => message.role === 'user'))
         .map((message) => ({

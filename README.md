@@ -183,6 +183,47 @@ Google project's billing tier. See [chat configuration and architecture](docs/me
   to 200 entries / roughly 1 MB. Save failures are visible; **Retry saving** only
   retries persistence and never republishes a broker message.
 
+### RAG: documentation-aware chat
+
+**RAG (Retrieval-Augmented Generation)** means finding relevant reference material
+and providing it to the AI alongside your question. This gives the model context
+for its answer without retraining it.
+
+Messaging Chat uses RAG automatically in both **Structured output** and **Tool
+calling** modes. It searches an explicit hardcoded `DOCUMENTS` list, then supplies
+up to three relevant entries to Gemini. Each entry defines its title, provider,
+text and citation source.
+No extra setup, embeddings service or vector database is required; the existing
+`GEMINI_API_KEY` setup is sufficient.
+
+To use it, open **Messaging Chat** and ask a documentation question, for example:
+
+- `How do I configure GEMINI_API_KEY?`
+- `What does the readiness health check test?`
+- `How are Azure Service Bus destinations configured?`
+- `Can this app send messages to AWS SQS topics?`
+
+The model is instructed to cite supporting excerpts in its reply, such as
+`[source: docs/messaging-chat.md#setup]`. Citations are model-generated and do not
+guarantee correctness. Retrieval currently uses English keywords from your latest
+message; include the provider and subject explicitly in follow-up questions.
+Unsupported questions may have no matching documentation.
+
+Documentation describes how the application works; current catalog/tool results
+determine available destinations. Retrieval does not send messages or establish
+live broker health. Sending still requires reviewing a draft and clicking **Send
+message**. Saved chats, environment files, credentials and broker message bodies
+are not indexed. Retrieved excerpts are sent to Google alongside the existing
+conversation and destination context.
+
+To add or change knowledge, edit `DOCUMENTS` in
+`apps/backend/src/app/messaging-chat/messaging-chat-knowledge.service.ts`, then
+rebuild/restart the backend. For a simple test, change the `chat-overview` entry's
+`text` and ask **What does the Overview section say?** in a new chat.
+`source` is a citation label: it does not load that Markdown file. Editing only
+the README or docs does not update RAG knowledge. Keep entry text aligned with
+its cited section, and never include secrets. See [retrieval details and limits](docs/messaging-chat.md#documentation-retrieval-rag).
+
 ### Send and process messages
 
 On **Tracking Messages**, choose **Send message**, select Azure Service Bus or

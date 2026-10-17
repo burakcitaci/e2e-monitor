@@ -3,6 +3,16 @@
 The chatbot replaces the former E2E scenario/policy demo. Existing messaging,
 manual broker settlement, resource discovery, and Vite performance fixes remain.
 
+## Overview
+
+Messaging Chat is a Gemini-powered assistant for preparing messages for local
+Azure Service Bus and AWS SQS emulators. It supports structured output and tool
+calling, uses relevant knowledge entries to answer documentation questions, and
+asks for missing message details. Drafts must use known destinations and are
+validated by the backend. The assistant does not send messages; the user reviews
+the destination and body and clicks Send message to publish through the existing
+messaging API.
+
 ## Setup
 
 Create a key in [Google AI Studio](https://aistudio.google.com/api-keys).
@@ -50,6 +60,47 @@ with a shared 30-second AI-request deadline. Unknown tools and ambiguous batches
 are rejected. Invalid arguments produce tool errors; safety blocks, provider
 errors, and loop exhaustion cannot return a prepared draft. There are no shell,
 arbitrary HTTP, or broker-send tools, automatic retries, or mode fallbacks.
+
+## Documentation retrieval (RAG)
+
+Both planning modes retrieve relevant documentation before calling Gemini.
+The knowledge corpus is the explicit `DOCUMENTS` list in
+`apps/backend/src/app/messaging-chat/messaging-chat-knowledge.service.ts`.
+Each entry defines `id`, `source`, `title`, `provider` and `text`. The `text` is
+what the model receives; `source` is a citation label, not a file to load.
+No vector database, embedding API, dependency or environment variable is required.
+
+The latest user message is searched using case-insensitive keyword matching,
+inverse document frequency, title weighting and extra weight for configuration
+identifiers. Queries are capped at 2,000 characters and at most three excerpts
+are supplied. Each entry explicitly sets its provider to Azure, AWS or shared.
+AWS-only questions exclude Azure-specific entries and vice versa;
+comparison questions can retrieve both. Unmatched questions receive no excerpts.
+This first version is English keyword retrieval, so paraphrases and short follow-up
+questions may miss relevant documents.
+
+The model is instructed to cite used excerpts in reply text as
+`[source: docs/messaging-chat.md#setup]`, acknowledge missing documentation and
+treat excerpts as reference data. Citations are model-generated text, not verified
+links or a guarantee of factual correctness. Existing response shapes and the
+explicit Send button remain unchanged. Live catalog/tool results take precedence
+over documentation; retrieval never executes broker operations. Existing broker
+discovery still runs, so documentation questions retain the planner's current
+discovery behavior and latency.
+
+Saved chats, environment files, credentials and broker message bodies are not
+indexed. Retrieved excerpts are sent to the already configured Gemini service
+alongside the existing conversation/catalog context. Never put secrets in knowledge
+entries. No Markdown files are read or automatically indexed.
+
+To test, edit the `chat-overview` entry's `text`, rebuild/restart the backend and
+ask about Overview in a new chat. Keep the entry text aligned with the Overview
+section above. Keep cited documentation and entry text in sync manually.
+Editing only Markdown does not change retrieval. Model answers and citations can
+still be inaccurate; a source label alone does not prove grounding.
+
+Entries are bundled with the backend; documentation files do not need to be
+deployed beside the application. Knowledge changes require a new build/restart.
 
 ## Saved conversations
 

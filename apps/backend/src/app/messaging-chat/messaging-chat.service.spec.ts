@@ -11,6 +11,7 @@ import type { AppConfigService } from '../common/app-config.service';
 import type { AwsSqsService } from '../aws-sqs/aws-sqs.service';
 import { MessagingChatService } from './messaging-chat.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
+import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 
 const draft = {
   provider: 'azure',
@@ -60,6 +61,7 @@ describe('LLM messaging planner', () => {
           }),
         } as unknown as AppConfigService,
         { listQueueResources: queues } as unknown as AwsSqsService,
+        new MessagingChatKnowledgeService(),
       ),
     );
     fetchMock.mockResolvedValue(
@@ -98,6 +100,20 @@ describe('LLM messaging planner', () => {
       model: 'gemini-3.5-flash-lite',
     });
   });
+  it('includes retrieved documentation and source instructions without altering user turns', async () => {
+    await service.reply([
+      { role: 'user', content: 'How do I configure GEMINI_API_KEY?' },
+    ]);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    const references = JSON.parse(payload.systemInstruction.parts[2].text);
+    expect(references[0].id).toBe('chat-setup');
+    expect(payload.systemInstruction.parts[1].text).toContain('reference data');
+    expect(payload.systemInstruction.parts[1].text).toContain('[source:');
+    expect(payload.contents).toEqual([
+      { role: 'user', parts: [{ text: 'How do I configure GEMINI_API_KEY?' }] },
+    ]);
+  });
+
   it('supports follow-up questions instead of inventing a message', async () => {
     fetchMock.mockResolvedValueOnce(
       result({ reply: 'What message body should I send?', draft: null }),

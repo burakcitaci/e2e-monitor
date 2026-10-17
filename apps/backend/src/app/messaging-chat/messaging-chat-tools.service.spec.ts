@@ -11,6 +11,7 @@ import type { AppConfigService } from '../common/app-config.service';
 import type { AwsSqsService } from '../aws-sqs/aws-sqs.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatToolsService } from './messaging-chat-tools.service';
+import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 
 const draft = {
   provider: 'aws',
@@ -49,11 +50,32 @@ describe('Separate Gemini tool-calling planner', () => {
       {
         listQueueResources: async () => [{ name: 'orders' }],
       } as unknown as AwsSqsService,
+      new MessagingChatKnowledgeService(),
     );
     service = new MessagingChatToolsService(runtime);
   });
   afterEach(() => {
     fetchMock.mockReset();
+  });
+
+  it('grounds informational tool-mode replies in documentation without requesting tools', async () => {
+    fetchMock.mockResolvedValueOnce(
+      response([
+        { text: 'Set the backend key. [source: docs/messaging-chat.md#setup]' },
+      ]),
+    );
+    const result = await service.reply([
+      { role: 'user', content: 'How do I configure GEMINI_API_KEY?' },
+    ]);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(JSON.parse(payload.systemInstruction.parts[2].text)[0].id).toBe(
+      'chat-setup',
+    );
+    expect(result).toEqual({
+      reply: 'Set the backend key. [source: docs/messaging-chat.md#setup]',
+      draft: null,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('executes lookup and preparation, sends tool results back and preserves signatures', async () => {
