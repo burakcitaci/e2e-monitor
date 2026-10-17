@@ -14,6 +14,12 @@ import type {
 import { ChatConversation } from './chat-history.schema';
 import type { AppendChatTurnDto, CreateChatDto } from './chat-history.dto';
 
+const CHAT_HISTORY_PAGE_SIZE = 20;
+const MAX_CHAT_BYTES = 1_000_000;
+const MAX_CHAT_TURNS = 200;
+const MAX_CHAT_TITLE_LENGTH = 80;
+const MONGO_DUPLICATE_KEY_CODE = 11000;
+
 @Injectable()
 export class ChatHistoryService {
   constructor(
@@ -36,7 +42,7 @@ export class ChatHistoryService {
         !error ||
         typeof error !== 'object' ||
         !('code' in error) ||
-        error.code !== 11000
+        error.code !== MONGO_DUPLICATE_KEY_CODE
       )
         throw error;
       const existing = await this.get(input.id);
@@ -47,7 +53,7 @@ export class ChatHistoryService {
   }
 
   async list(page: number): Promise<ChatHistoryPage> {
-    const limit = 20;
+    const limit = CHAT_HISTORY_PAGE_SIZE;
     const [items, total] = await Promise.all([
       this.model
         .find({})
@@ -82,9 +88,9 @@ export class ChatHistoryService {
         {
           id,
           revision: input.revision,
-          bytes: { $lte: 1000000 - bytes },
+          bytes: { $lte: MAX_CHAT_BYTES - bytes },
           'turns.id': { $ne: input.turn.id },
-          $expr: { $lt: [{ $size: '$turns' }, 200] },
+          $expr: { $lt: [{ $size: '$turns' }, MAX_CHAT_TURNS] },
         },
         {
           $push: { turns: input.turn },
@@ -95,7 +101,7 @@ export class ChatHistoryService {
                   title: input.turn.content
                     .replace(/\s+/g, ' ')
                     .trim()
-                    .slice(0, 80),
+                    .slice(0, MAX_CHAT_TITLE_LENGTH),
                 },
               }
             : {}),
@@ -114,7 +120,7 @@ export class ChatHistoryService {
       duplicate.context === input.turn.context
     )
       return existing;
-    if (existing.turns.length >= 200)
+    if (existing.turns.length >= MAX_CHAT_TURNS)
       throw new BadRequestException(
         'This chat has reached 200 entries. Start a new chat.',
       );

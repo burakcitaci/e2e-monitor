@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { MessageService } from './messages.service';
 import type { MessageDisposition } from './message.schema';
 
+const DEFAULT_DELIVERY_LIFETIME_MS = 90_000;
+
 type Actions = Record<MessageDisposition, () => Promise<void>>;
 type PendingDelivery = {
   trackingId: string;
@@ -24,7 +26,7 @@ export class PendingDeliveriesService implements OnModuleDestroy {
     trackingId: string,
     queue: string,
     actions: Actions,
-    lifetimeMs = 90_000,
+    lifetimeMs = DEFAULT_DELIVERY_LIFETIME_MS,
   ): Promise<void> {
     const token = randomUUID();
     return new Promise((release) => {

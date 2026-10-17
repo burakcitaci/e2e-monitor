@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class DockerConnectionException extends HttpException {
@@ -9,7 +8,7 @@ export class DockerConnectionException extends HttpException {
         error: 'Docker Connection Error',
         message,
       },
-      HttpStatus.SERVICE_UNAVAILABLE
+      HttpStatus.SERVICE_UNAVAILABLE,
     );
   }
 }
@@ -22,7 +21,7 @@ export class ContainerNotFoundException extends HttpException {
         error: 'Container Not Found',
         message: `Container '${containerId}' not found`,
       },
-      HttpStatus.NOT_FOUND
+      HttpStatus.NOT_FOUND,
     );
   }
 }
@@ -36,7 +35,7 @@ export class ContainerOperationException extends HttpException {
         message: `Failed to ${operation} container '${containerId}'`,
         details: originalError?.message,
       },
-      HttpStatus.INTERNAL_SERVER_ERROR
+      HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
 }
@@ -49,7 +48,7 @@ export class FileNotFoundException extends HttpException {
         error: 'File Not Found',
         message: `File '${fileName}' not found`,
       },
-      HttpStatus.NOT_FOUND
+      HttpStatus.NOT_FOUND,
     );
   }
 }
@@ -62,7 +61,7 @@ export class ServiceBusConnectionException extends HttpException {
         error: 'Service Bus Connection Error',
         message,
       },
-      HttpStatus.SERVICE_UNAVAILABLE
+      HttpStatus.SERVICE_UNAVAILABLE,
     );
   }
 }
@@ -75,14 +74,13 @@ export class AwsSqsConnectionException extends HttpException {
         error: 'AWS SQS Connection Error',
         message,
       },
-      HttpStatus.SERVICE_UNAVAILABLE
+      HttpStatus.SERVICE_UNAVAILABLE,
     );
   }
 }
 
-
 export class ValidationException extends HttpException {
-  constructor(message: string, errors?: any[]) {
+  constructor(message: string, errors?: unknown[]) {
     super(
       {
         status: HttpStatus.BAD_REQUEST,
@@ -90,7 +88,7 @@ export class ValidationException extends HttpException {
         message,
         validationErrors: errors,
       },
-      HttpStatus.BAD_REQUEST
+      HttpStatus.BAD_REQUEST,
     );
   }
 }
