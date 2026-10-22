@@ -13,6 +13,13 @@ validated by the backend. The assistant does not send messages; the user reviews
 the destination and body and clicks Send message to publish through the existing
 messaging API.
 
+## Supported providers
+
+This application supports exactly two messaging providers: **Azure Service Bus**
+and **AWS SQS**. Azure Service Bus supports queues and topics; AWS SQS supports
+queues only. Gemini is the AI model provider for chat, not an additional messaging
+provider. This supported provider count does not indicate current broker availability.
+
 ## Setup
 
 Create a key in [Google AI Studio](https://aistudio.google.com/api-keys).

@@ -3,6 +3,30 @@ import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.servic
 
 describe('Messaging chat documentation retrieval', () => {
   const knowledge = new MessagingChatKnowledgeService();
+  it.each([
+    'how many providers ?',
+    'how many provider?',
+    'Which providers are supported?',
+  ])('retrieves the explicit provider count for %s', (query) => {
+    expect(knowledge.retrieve(query)[0]).toMatchObject({
+      id: 'supported-providers',
+      source: 'docs/messaging-chat.md#supported-providers',
+      text: expect.stringContaining(
+        'exactly two messaging providers: Azure Service Bus and AWS SQS',
+      ),
+    });
+  });
+
+  it.each([
+    ['queue', 'queues'],
+    ['topic', 'topics'],
+    ['message', 'messages'],
+    ['destination', 'destinations'],
+    ['tool', 'tools'],
+    ['emulator', 'emulators'],
+  ])('retrieves the same knowledge for %s and %s', (singular, plural) => {
+    expect(knowledge.retrieve(plural)).toEqual(knowledge.retrieve(singular));
+  });
   it('retrieves setup guidance with a stable documentation source', () => {
     expect(
       knowledge.retrieve('How do I configure GEMINI_API_KEY?')[0],

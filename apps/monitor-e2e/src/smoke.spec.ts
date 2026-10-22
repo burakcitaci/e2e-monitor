@@ -44,10 +44,10 @@ test.describe('Monitor Application - Smoke Tests', () => {
 
     // Check for table headers
     await expect(
-      page.getByRole('columnheader', { name: 'Sent By' })
+      page.getByRole('columnheader', { name: 'Services' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('columnheader', { name: 'Status' })
+      page.getByRole('columnheader', { name: 'Status' }),
     ).toBeVisible();
   });
 
@@ -105,7 +105,7 @@ test.describe('Monitor Application - Smoke Tests', () => {
       (err) =>
         !err.includes('Failed to fetch') && // API might not be running
         !err.includes('NetworkError') &&
-        !err.includes('net::ERR')
+        !err.includes('net::ERR'),
     );
 
     expect(criticalErrors).toHaveLength(0);

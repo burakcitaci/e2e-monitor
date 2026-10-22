@@ -199,6 +199,7 @@ No extra setup, embeddings service or vector database is required; the existing
 To use it, open **Messaging Chat** and ask a documentation question, for example:
 
 - `How do I configure GEMINI_API_KEY?`
+- `How many messaging providers are supported?`
 - `What does the readiness health check test?`
 - `How are Azure Service Bus destinations configured?`
 - `Can this app send messages to AWS SQS topics?`

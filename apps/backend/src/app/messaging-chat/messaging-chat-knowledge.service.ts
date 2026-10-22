@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 
 const MAX_RESULTS = 3;
 const MAX_QUERY_LENGTH = 2000;
+const SINGULAR_TERMS: Readonly<Record<string, string>> = {
+  providers: 'provider',
+  queues: 'queue',
+  topics: 'topic',
+  messages: 'message',
+  destinations: 'destination',
+  tools: 'tool',
+  emulators: 'emulator',
+};
 const STOP_WORDS = new Set(
   'a an and are as at be can do for from how i in is it me my of on or please that the this to what when where which with you'.split(
     ' ',
@@ -19,6 +28,13 @@ type KnowledgeDocument = {
 // Explicit knowledge entries: text is the retrieved content; source is a citation
 // label, not a file loader. Keep entries in sync with their referenced sections.
 const DOCUMENTS: readonly KnowledgeDocument[] = [
+  {
+    id: 'supported-providers',
+    source: 'docs/messaging-chat.md#supported-providers',
+    title: 'Supported messaging providers',
+    provider: 'shared',
+    text: 'This application supports exactly two messaging providers: Azure Service Bus and AWS SQS. Azure Service Bus supports queues and topics. AWS SQS supports queues only. Gemini is the AI model provider for chat, not an additional messaging provider. The supported provider count does not indicate whether either broker is currently available.',
+  },
   {
     id: 'chat-overview',
     source: 'docs/messaging-chat.md#overview',
@@ -77,7 +93,7 @@ function tokens(text: string): Set<string> {
       .map((word) =>
         /^(setup|configure|configured|configuration)$/.test(word)
           ? 'config'
-          : word,
+          : (SINGULAR_TERMS[word] ?? word),
       ),
   );
 }

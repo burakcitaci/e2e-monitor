@@ -78,6 +78,22 @@ describe('Separate Gemini tool-calling planner', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('passes the documented provider count to tool-mode Gemini', async () => {
+    fetchMock.mockResolvedValueOnce(
+      response([{ text: 'Two messaging providers.' }]),
+    );
+    await service.reply([{ role: 'user', content: 'how many providers ?' }]);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(
+      JSON.parse(payload.systemInstruction.parts[2].text)[0],
+    ).toMatchObject({
+      id: 'supported-providers',
+      text: expect.stringContaining(
+        'exactly two messaging providers: Azure Service Bus and AWS SQS',
+      ),
+    });
+  });
+
   it('executes lookup and preparation, sends tool results back and preserves signatures', async () => {
     fetchMock
       .mockResolvedValueOnce(call('list_destinations'))

@@ -9,7 +9,8 @@ export const trackingMessageKeys = {
   list: () => [...trackingMessageKeys.lists()] as const,
   details: () => [...trackingMessageKeys.all, 'detail'] as const,
   detail: (id: string) => [...trackingMessageKeys.details(), id] as const,
-  listsByEmulator: (emulator: string) => [...trackingMessageKeys.all, 'list', emulator] as const,
+  listsByEmulator: (emulator: string) =>
+    [...trackingMessageKeys.all, 'list', emulator] as const,
 };
 
 // Hooks
@@ -21,7 +22,11 @@ export const useTrackingMessages = () => {
     refetchInterval: 3000, // Poll every 3 seconds to get real-time updates
     retry: (failureCount, error) => {
       // Don't retry on 4xx errors
-      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+      if (
+        error instanceof ApiError &&
+        error.status >= 400 &&
+        error.status < 500
+      ) {
         return false;
       }
       return failureCount < 3;
@@ -34,7 +39,17 @@ export const useTrackingMessage = (id: string) => {
     queryKey: trackingMessageKeys.detail(id),
     queryFn: () => apiClient.getTrackingMessage(id),
     enabled: !!id,
-    staleTime: 60000, // 1 minute
+    staleTime: 3000,
+    refetchInterval: 3000,
+    retry: (failureCount, error) => {
+      if (
+        error instanceof ApiError &&
+        error.status >= 400 &&
+        error.status < 500
+      )
+        return false;
+      return failureCount < 3;
+    },
   });
 };
 
@@ -47,7 +62,6 @@ export const useTrackingMessagesByEmulator = (emulator: string) => {
     staleTime: 5000, // 5 seconds - consider data stale quickly for monitoring
   });
 };
-
 
 // Update ALL three mutation hooks in your tracking-messages hook file:
 
@@ -68,8 +82,13 @@ export const useUpdateTrackingMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, message }: { id: string; message: Partial<TrackingMessage> }) =>
-      apiClient.updateTrackingMessage(id, message),
+    mutationFn: ({
+      id,
+      message,
+    }: {
+      id: string;
+      message: Partial<TrackingMessage>;
+    }) => apiClient.updateTrackingMessage(id, message),
     onSuccess: (_, { id }) => {
       // Invalidate all tracking message queries
       queryClient.invalidateQueries({ queryKey: trackingMessageKeys.all });

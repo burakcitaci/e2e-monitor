@@ -67,6 +67,7 @@ export function applyCaptureEvent(
 export function captureTrackingRows(id: string, state: CaptureState) {
   const base = {
     messageId: state.messageId,
+    detailId: id,
     captureId: state.captureId,
     namespace: state.namespace,
     trackingSource: 'capture' as const,

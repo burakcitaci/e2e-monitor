@@ -35,6 +35,17 @@ export const trackingMessageSchema = z.preprocess(
   z.object({
     _id: z.string().optional(),
     messageId: z.string().optional(),
+    detailId: z.string().optional(),
+    deliveries: z
+      .array(
+        z.object({
+          subscription: z.string(),
+          service: z.string(),
+          receivedAt: z.coerce.date().optional(),
+          completedAt: z.coerce.date().optional(),
+        }),
+      )
+      .optional(),
     captureId: z.string().optional(),
     namespace: z.string().optional(),
     trackingSource: z.literal('capture').optional(),

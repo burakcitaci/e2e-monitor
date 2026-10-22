@@ -48,17 +48,21 @@ test('application reports progress from sent to received and complete on polling
   await expect(row).toContainText('financing-api');
   await expect(row).toContainText('Application report');
   await expect(row.getByText('Sent', { exact: true })).toBeVisible();
-  await expect(row).toContainText(captureId);
+  await expect(
+    row.getByRole('link', { name: 'Hello from financing' }),
+  ).toHaveAttribute('href', '/messages/capture-row');
   await expect(
     row.getByRole('button', { name: 'Receive / settle' }),
   ).toHaveCount(0);
   phase = 'received';
   await expect(row).toContainText('orders-consumer', { timeout: 10000 });
   await expect(row.getByText('Received', { exact: true })).toBeVisible();
-  await expect(row.getByText('Complete', { exact: true })).toHaveCount(0);
+  await expect(row.getByText('Completed', { exact: true })).toHaveCount(0);
   phase = 'completed';
-  await expect(row.getByText('Complete', { exact: true })).toBeVisible({
+  await expect(row.getByText('Completed', { exact: true })).toBeVisible({
     timeout: 10000,
   });
+  await expect(row.getByText('Received', { exact: true })).toHaveCount(0);
+  await expect(row.getByText('Complete', { exact: true })).toHaveCount(0);
   expect(polls).toBeGreaterThanOrEqual(3);
 });

@@ -114,6 +114,19 @@ describe('LLM messaging planner', () => {
     ]);
   });
 
+  it('passes the documented provider count to Gemini for a plural question', async () => {
+    await service.reply([{ role: 'user', content: 'how many providers ?' }]);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(
+      JSON.parse(payload.systemInstruction.parts[2].text)[0],
+    ).toMatchObject({
+      id: 'supported-providers',
+      text: expect.stringContaining(
+        'exactly two messaging providers: Azure Service Bus and AWS SQS',
+      ),
+    });
+  });
+
   it('supports follow-up questions instead of inventing a message', async () => {
     fetchMock.mockResolvedValueOnce(
       result({ reply: 'What message body should I send?', draft: null }),

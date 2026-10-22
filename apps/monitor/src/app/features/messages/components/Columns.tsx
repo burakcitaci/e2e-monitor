@@ -1,165 +1,103 @@
+import { Link } from 'react-router';
+import type { ColumnDef, Row } from '@tanstack/react-table';
+import type { TrackingMessage } from '@e2e-monitor/entities';
 import { DataTableColumnHeader } from '../../../components/data-table';
-import { Option } from '../../../types/data-table';
-import { Row } from '@tanstack/react-table';
-import { TrackingMessage } from '@e2e-monitor/entities';
 import { Badge } from '../../../components/ui/badge';
-import { ColumnDef } from '@tanstack/react-table';
+import type { Option } from '../../../types/data-table';
 import { MessageActions } from './MessageActions';
+import {
+  messageDetailPath,
+  messageStatus,
+  messageStatusLabels,
+} from '../message-presentation';
 
-// Keep this component identity stable when polling rebuilds filter options.
 const MessageActionsCell = ({ row }: { row: Row<TrackingMessage> }) => (
   <MessageActions message={row.original} />
 );
+type Filter = (
+  row: Row<TrackingMessage>,
+  id: string,
+  value: unknown,
+) => boolean;
 
 export const createColumns = (
   sentByOptions: Option[],
-  receivedByOptions: Option[],
-  emulatorTypeOptions: Option[],
-  sentByFilterFn: (
-    row: Row<TrackingMessage>,
-    id: string,
-    value: unknown,
-  ) => boolean,
-  receivedByFilterFn: (
-    row: Row<TrackingMessage>,
-    id: string,
-    value: unknown,
-  ) => boolean,
-  emulatorTypeFilterFn: (
-    row: Row<TrackingMessage>,
-    id: string,
-    value: unknown,
-  ) => boolean,
-  statusFilterFn: (
-    row: Row<TrackingMessage>,
-    id: string,
-    value: unknown,
-  ) => boolean,
+  sentByFilterFn: Filter,
+  statusFilterFn: Filter,
 ): ColumnDef<TrackingMessage>[] => [
-  {
-    id: 'actions',
-    header: 'Actions',
-    cell: MessageActionsCell,
-  },
+  { id: 'actions', header: 'Actions', cell: MessageActionsCell },
   {
     accessorKey: 'body',
     header: 'Message',
-    cell: ({ row }) => (
-      <div
-        className="max-w-56 truncate text-xs font-mono"
-        title={row.original.body}
-      >
-        {row.original.body}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const message = row.original;
+      return (
+        <Link
+          to={messageDetailPath(message)}
+          className="block max-w-64 truncate font-mono text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:underline"
+          title={message.body}
+        >
+          {message.body || 'View message'}
+        </Link>
+      );
+    },
   },
   {
     accessorKey: 'queue',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Queue" />
+      <DataTableColumnHeader column={column} title="Destination" />
     ),
-    cell: ({ row }) => {
-      return (
-        <div className="text-xs truncate max-w-32">
-          {row.original.queue || '-'}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'emulatorType',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Emulator" />
+    cell: ({ row }) => (
+      <div className="max-w-48 truncate text-xs" title={row.original.queue}>
+        {row.original.queue || '-'}
+      </div>
     ),
-    cell: ({ row }) => {
-      const emulatorType = row.original.emulatorType;
-      const displayText =
-        emulatorType === 'azure-service-bus'
-          ? 'Azure SB'
-          : emulatorType === 'sqs'
-            ? 'SQS'
-            : emulatorType || '-';
-
-      return <div className="text-xs">{displayText}</div>;
-    },
-    enableColumnFilter: true,
-    filterFn: emulatorTypeFilterFn,
-    meta: {
-      variant: 'multiSelect',
-      label: 'Emulator',
-      options: emulatorTypeOptions,
-    },
   },
   {
     accessorKey: 'sentBy',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sent By" />
+      <DataTableColumnHeader column={column} title="Services" />
     ),
-    cell: ({ row }) => {
-      return (
-        <div className="text-xs truncate max-w-32">
-          {row.original.sentBy || '-'}
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <div className="text-xs max-w-40">
+        <p className="truncate" title={row.original.sentBy}>
+          {row.original.sentBy || 'Unknown publisher'}
+        </p>
+        <p
+          className="truncate text-muted-foreground"
+          title={row.original.receivedBy}
+        >
+          → {row.original.receivedBy || 'Awaiting subscriber'}
+        </p>
+      </div>
+    ),
     enableColumnFilter: true,
     filterFn: sentByFilterFn,
     meta: {
       variant: 'multiSelect',
-      label: 'Sent By',
+      label: 'Publisher',
       options: sentByOptions,
     },
   },
   {
-    accessorKey: 'receivedBy',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Received By" />
-    ),
-    cell: ({ row }) => {
-      const status = row.original.status;
-      const receivedBy = row.original.receivedBy;
-
-      if (status === 'processing') {
-        return (
-          <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
-            Pending
-          </Badge>
-        );
-      }
-
-      return (
-        <div className="text-xs truncate max-w-32">{receivedBy || '-'}</div>
-      );
-    },
-    enableColumnFilter: true,
-    filterFn: receivedByFilterFn,
-    meta: {
-      variant: 'multiSelect',
-      label: 'Received By',
-      options: receivedByOptions,
-    },
-  },
-  {
     id: 'status',
-    accessorKey: 'status',
+    accessorFn: messageStatus,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = row.original.status;
-      const variantMap: Record<string, 'default' | 'secondary' | 'outline'> = {
-        received: 'default',
-        processing: 'outline',
-        sent: 'secondary',
-      };
+      const status = messageStatus(row.original);
       return (
         <Badge
-          variant={variantMap[status] || 'secondary'}
-          className="text-xs px-2 py-0.5 h-5"
+          variant={
+            status === 'completed'
+              ? 'default'
+              : status === 'deadletter'
+                ? 'destructive'
+                : 'outline'
+          }
         >
-          {row.original.pendingDeliveries?.length
-            ? 'Pending'
-            : status.charAt(0).toUpperCase() + status.slice(1)}
+          {messageStatusLabels[status] ?? status}
         </Badge>
       );
     },
@@ -172,51 +110,12 @@ export const createColumns = (
         { label: 'Sent', value: 'sent' },
         { label: 'Processing', value: 'processing' },
         { label: 'Received', value: 'received' },
-      ] as Option[],
-    },
-  },
-  {
-    id: 'disposition',
-    accessorKey: 'disposition',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Disposition" />
-    ),
-    cell: ({ row }) => {
-      const disposition = row.original.disposition;
-      const status = row.original.status;
-
-      // Show "Processing" badge when message is being processed
-      if (status === 'processing') {
-        return (
-          <Badge variant="outline" className="text-xs px-2 py-0.5 h-5">
-            Pending
-          </Badge>
-        );
-      }
-
-      // Only show disposition when message has been received/processed
-      if (status !== 'received' || !disposition) {
-        return <div className="text-xs text-muted-foreground">-</div>;
-      }
-
-      const variantMap: Record<
-        string,
-        'default' | 'secondary' | 'destructive' | 'outline'
-      > = {
-        complete: 'default',
-        abandon: 'secondary',
-        deadletter: 'destructive',
-        defer: 'outline',
-      };
-
-      return (
-        <Badge
-          variant={variantMap[disposition] || 'secondary'}
-          className="text-xs px-2 py-0.5 h-5"
-        >
-          {disposition.charAt(0).toUpperCase() + disposition.slice(1)}
-        </Badge>
-      );
+        { label: 'Completed', value: 'completed' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Abandoned', value: 'abandon' },
+        { label: 'Deferred', value: 'defer' },
+        { label: 'Dead-lettered', value: 'deadletter' },
+      ],
     },
   },
   {
@@ -224,47 +123,12 @@ export const createColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Sent At" />
     ),
-    cell: ({ row }) => {
-      const timestamp = row.original.sentAt;
-      return (
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {timestamp ? new Date(timestamp).toLocaleString() : 'N/A'}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'captureId',
-    header: 'Capture ID',
     cell: ({ row }) => (
-      <span className="text-xs font-mono" title={row.original.namespace}>
-        {row.original.captureId || '-'}
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
+        {row.original.sentAt
+          ? new Date(row.original.sentAt).toLocaleString()
+          : 'Not reported'}
       </span>
     ),
-  },
-  {
-    accessorKey: 'completedAt',
-    header: 'Completed At',
-    cell: ({ row }) => (
-      <span className="text-xs whitespace-nowrap">
-        {row.original.completedAt
-          ? new Date(row.original.completedAt).toLocaleString()
-          : '-'}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'receivedAt',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Received At" />
-    ),
-    cell: ({ row }) => {
-      const timestamp = row.original.receivedAt;
-      return (
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {timestamp ? new Date(timestamp).toLocaleString() : 'N/A'}
-        </div>
-      );
-    },
   },
 ];

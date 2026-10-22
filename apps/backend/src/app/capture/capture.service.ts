@@ -66,8 +66,20 @@ export class CaptureService {
 
   async trackingRows() {
     const captures = await this.model.find().lean().exec();
-    return captures.flatMap<ReturnType<typeof captureTrackingRows>[number]>((capture) =>
-      captureTrackingRows(capture._id, capture.state),
+    return captures.flatMap<ReturnType<typeof captureTrackingRows>[number]>(
+      (capture) => captureTrackingRows(capture._id, capture.state),
     );
+  }
+
+  async detail(id: string) {
+    const capture = await this.model.findById(id).lean().exec();
+    if (!capture) return null;
+    const rows = captureTrackingRows(id, capture.state);
+    return {
+      ...rows[0],
+      _id: id,
+      queue: capture.state.destination,
+      deliveries: capture.state.deliveries,
+    };
   }
 }

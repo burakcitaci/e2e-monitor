@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -14,6 +15,7 @@ import { SettleMessageDto } from './dto/settle-message.dto';
 import { EmulatorType, emulatorTypes } from './message.schema';
 import { AppLogger } from '../common/logger.service';
 import { CaptureService } from '../capture/capture.service';
+import { isValidObjectId } from 'mongoose';
 import {
   CreateTrackingMessageDto,
   UpdateTrackingMessageDto,
@@ -79,11 +81,19 @@ export class MessagesController {
 
   @Get('tracking/:id')
   async getTrackingMessage(@Param('id') id: string) {
-    const result = await this.messagesService.findOneTracking(id);
+    const result = /^[a-f0-9]{64}$/.test(id)
+      ? await this.capture.detail(id)
+      : isValidObjectId(id)
+        ? await this.messagesService.findOneTracking(id)
+        : null;
+    if (!result) throw new NotFoundException('Message not found');
     this.logger.log(`Retrieved tracking message ${id}`);
     return {
       success: true,
-      data: result,
+      data: {
+        ...result,
+        pendingDeliveries: this.pendingDeliveries.list(id),
+      },
     };
   }
 

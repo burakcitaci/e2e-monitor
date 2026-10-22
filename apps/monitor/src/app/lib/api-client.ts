@@ -267,7 +267,7 @@ class ApiClient {
 
   async getTrackingMessage(id: string): Promise<TrackingMessage> {
     const response = await this.request(
-      `/tracked-messages/tracking/${id}`,
+      `/tracked-messages/tracking/${encodeURIComponent(id)}`,
       undefined,
       trackingMessageResponseSchema
     );

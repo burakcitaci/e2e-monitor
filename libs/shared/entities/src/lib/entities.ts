@@ -7,6 +7,7 @@
 export interface TrackingMessage {
   _id: string;
   messageId: string;
+  detailId?: string;
   captureId?: string;
   namespace?: string;
   trackingSource?: 'capture';
