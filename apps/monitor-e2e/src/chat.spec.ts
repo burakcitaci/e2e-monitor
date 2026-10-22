@@ -7,7 +7,7 @@ for (const mode of ['structured', 'tools'] as const) {
     ['azure', 'queue', 'orders'],
     ['aws', 'queue', 'orders.fifo'],
   ] as const) {
-    test(`${mode} chat prepares and confirms ${provider} ${destinationType} messages`, async ({
+    test(`${mode} chat prepares draft-only ${provider} ${destinationType} messages`, async ({
       page,
     }) => {
       if (provider === 'aws')
@@ -43,26 +43,10 @@ for (const mode of ['structured', 'tools'] as const) {
                   },
                 };
         } else if (
-          route.request().method() === 'POST' &&
-          path.endsWith('/messages')
+          path.includes('/service-bus/') ||
+          path.includes('/aws-sqs/')
         ) {
           sends++;
-          const body = route.request().postDataJSON();
-          expect(body.body).toBe('{"hello":"world"}');
-          expect(body.sentBy).toBe('messaging-chat');
-          if (provider === 'azure') expect(body.queue).toBe(destination);
-          else
-            expect(body).toMatchObject({
-              queueName: destination,
-              messageGroupId: 'dashboard-chat',
-              messageDeduplicationId: body.messageId,
-            });
-          data = {
-            messageId: 'sent-id',
-            queueName: destination,
-            queueUrl: 'http://local/orders',
-            md5OfBody: 'hash',
-          };
         }
         await route.fulfill({ json: { success: true, data } });
       });
@@ -109,12 +93,13 @@ for (const mode of ['structured', 'tools'] as const) {
       await launcher.click();
       await expect(review).toContainText(destination);
       await expect(page.getByRole('log')).toContainText('What message body');
-      await review
-        .getByRole('button', { name: 'Send message', exact: true })
-        .dblclick();
-      await expect(page.getByRole('log')).toContainText('Message ID: sent-id');
-      expect(sends).toBe(1);
+      await expect(
+        review.getByRole('button', { name: 'Send message', exact: true }),
+      ).toHaveCount(0);
+      await expect(review).toContainText('Draft only');
+      await review.getByRole('button', { name: 'Discard draft' }).click();
       await expect(review).toBeHidden();
+      expect(sends).toBe(0);
     });
   }
 }
@@ -138,55 +123,6 @@ test('chat shows configuration guidance without pretending to call an LLM', asyn
   await expect(
     page.getByRole('heading', { name: 'Messaging Chat' }),
   ).toBeVisible();
-});
-
-test('chat keeps a failed send draft available and allows discarding it', async ({
-  page,
-}) => {
-  await page.route('**/api/v1/**', async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    if (path.endsWith('/messaging-chat/status'))
-      await route.fulfill({
-        json: {
-          success: true,
-          data: { configured: true, model: 'gemini-3.5-flash-lite' },
-        },
-      });
-    else if (path.endsWith('/messaging-chat/messages'))
-      await route.fulfill({
-        json: {
-          success: true,
-          data: {
-            reply: 'Review this draft.',
-            draft: {
-              provider: 'aws',
-              destinationType: 'queue',
-              destination: 'orders',
-              body: 'hello',
-            },
-          },
-        },
-      });
-    else
-      await route.fulfill({
-        status: 503,
-        json: { message: 'Emulator unavailable' },
-      });
-  });
-  await installChatHistory(page);
-  await page.goto('/chat');
-  await page.getByLabel('Your message').fill('Send hello to AWS queue orders');
-  await page.getByRole('button', { name: 'Ask assistant' }).click();
-  await page.getByRole('button', { name: 'Send message', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Emulator unavailable');
-  await expect(
-    page.getByRole('region', { name: 'Review message' }),
-  ).toContainText('hello');
-  await page.getByRole('button', { name: 'Discard draft' }).click();
-  await expect(
-    page.getByRole('region', { name: 'Review message' }),
-  ).toBeHidden();
-  await expect(page.getByRole('log')).not.toContainText('Message sent');
 });
 
 test('switching chat mode clears the old draft and keeps only the selected mode history', async ({

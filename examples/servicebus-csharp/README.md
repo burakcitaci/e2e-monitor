@@ -21,13 +21,11 @@ From the repository root:
 yarn compose:up
 ```
 
-Start the NestJS API and monitor with `yarn dev`. Automatic Azure Service Bus
-consumers in the monitor are disabled; this C# subscriber owns its subscription.
+Start the NestJS API and monitor with `yarn dev`. The monitor has no broker consumers; this C# subscriber owns its subscription.
 Restart the API and any running C# processes after updating the code.
 
 No connection string setup is needed. The app defaults to the Docker emulator
-exposed at `localhost:5672`, using the public emulator credentials from
-`.env.example`. Run the C# processes on the host, from the repository root.
+exposed at `localhost:5672`, using the public emulator credentials built into `Program.cs`. Run the C# processes on the host, from the repository root.
 
 Start Backend B in terminal 1:
 

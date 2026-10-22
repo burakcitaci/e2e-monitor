@@ -1,185 +1,84 @@
 # Messaging chatbot
 
-The chatbot replaces the former E2E scenario/policy demo. Existing messaging,
-manual broker settlement, resource discovery, and Vite performance fixes remain.
-
 ## Overview
 
-Messaging Chat is a Gemini-powered assistant for preparing messages for local
-Azure Service Bus and AWS SQS emulators. It supports structured output and tool
-calling, uses relevant knowledge entries to answer documentation questions, and
-asks for missing message details. Drafts must use known destinations and are
-validated by the backend. The assistant does not send messages; the user reviews
-the destination and body and clicks Send message to publish through the existing
-messaging API.
+Messaging Chat retains the Gemini AI integration, structured output and tool
+calling modes, retrieved documentation context, message draft previews, and
+MongoDB conversation history. It answers messaging questions and prepares drafts.
+The platform is a collector: it has no broker publish, receive, or settlement
+capability. External applications own those operations.
 
 ## Supported providers
 
-This application supports exactly two messaging providers: **Azure Service Bus**
-and **AWS SQS**. Azure Service Bus supports queues and topics; AWS SQS supports
-queues only. Gemini is the AI model provider for chat, not an additional messaging
-provider. This supported provider count does not indicate current broker availability.
+Destination metadata recognizes Azure Service Bus queues/topics and AWS SQS
+queues. The capture SDK currently reports Azure Service Bus activity only; SQS
+capture is not implemented. Gemini is the AI provider, not a messaging transport.
+Saved or configured destination names do not prove broker availability.
 
 ## Setup
 
-Create a key in [Google AI Studio](https://aistudio.google.com/api-keys).
-Set `GEMINI_API_KEY` in the backend's root `.env` or environment and restart the
-API. Never set this key in a `VITE_` variable or commit it. The default model is
-`gemini-3.5-flash-lite`; `GEMINI_MODEL` can select another Gemini model supporting
-structured outputs. OpenAI keys are not used by this integration.
-The default model offers a free tier with quotas; this app cannot select or enforce
-your Google project's billing tier. Keep the Google project on the free tier if you
-want no API charges. Quota exhaustion is shown as an error without automatic retries
-or fallback to a paid provider. Availability and quotas depend on Google's policies.
+Set `GEMINI_API_KEY` in the backend root `.env` or process environment and restart
+the API. Never set it in a `VITE_` variable or commit it. `GEMINI_MODEL` defaults
+to `gemini-3.5-flash-lite`. Model availability, quotas, and billing are controlled
+by your Google project; the app does not select a billing tier or automatically
+switch providers. Missing configuration, quota errors, and upstream failures are
+reported without automatic AI retries.
 
-Click **Messaging Chat** on the main monitor page to open the assistant in a
-right-side sheet while keeping the message table in place. Closing and reopening the sheet
-preserves the conversation and prepared draft until you leave the monitor page.
-Saved chats are available again from **Chat history** after navigating away or reloading.
-The direct `/chat` page remains available for old links, but is not listed in the sidebar.
-
-Describe the provider, queue/topic, and message, and answer any
-follow-up questions. Review the exact destination and body, then click **Send
-message**. AWS SQS supports queues; Azure Service Bus supports queues and topics.
-The chatbot only prepares drafts for discovered/configured destinations. SQS
-queues must already exist; create resources using the existing messaging tools.
+Open **Messaging Chat** from the main tracking page or visit `/chat`. Closing and
+reopening the sheet preserves the current conversation. Saved conversations can
+be selected from **Chat history**, with pages of 20 entries. Selecting a saved
+conversation restores its transcript and mode. **New chat** starts a fresh one.
 
 ## Planning modes
 
-The mode toggle defaults to **Structured output**. Switching modes clears the
-conversation and pending draft; it is disabled during requests. Mode selection
-and the conversation survive closing/reopening the sheet while the monitor stays
-mounted. Both modes keep broker publishing behind the explicit Send button.
+- **Structured output** requests a validated reply and optional draft from Gemini.
+- **Tool calling** allows `list_destinations` and `prepare_message` only. These
+  tools read the catalog and validate drafts. There are no broker or shell tools.
 
-- **Structured output** uses `MessagingChatService` and
-  `POST /api/v1/messaging-chat/messages`. It requests a JSON-schema draft in one
-  Gemini response and validates that draft against the destination catalog.
-- **Tool calling** uses the separate `MessagingChatToolsService` and
-  `POST /api/v1/messaging-chat/messages/tools`. Gemini may call
-  `list_destinations` (returns a local catalog snapshot) or `prepare_message`
-  (validates and prepares a draft without sending). The backend returns real
-  function results to the model and preserves call IDs and thought signatures.
-  A normal text response completes the conversation turn; only a successfully
-  validated preparation can produce a sendable draft.
+Drafts show their provider, destination, and exact payload for review. Copy the
+payload into an external publisher or ask for changes. The platform has no Send
+message button or broker send endpoint. Switching modes starts a new conversation.
+Historical drafts do not regain an active preview when loading an old chat.
 
-Tool mode allows at most four Gemini requests and eight function calls per turn,
-with a shared 30-second AI-request deadline. Unknown tools and ambiguous batches
-are rejected. Invalid arguments produce tool errors; safety blocks, provider
-errors, and loop exhaustion cannot return a prepared draft. There are no shell,
-arbitrary HTTP, or broker-send tools, automatic retries, or mode fallbacks.
+The catalog combines `config/servicebus-config.json` with active saved destination
+metadata in MongoDB. The collector does not discover SQS queues or connect to
+Azure Service Bus. Tool mode allows four Gemini requests and eight function calls
+per turn, with a shared 30-second AI-request deadline. No fallback to another mode
+or automatic retry is performed.
+
+## Persistence and privacy
+
+Conversations contain text and prepared-draft context, bounded to 200 turns and
+roughly 1 MB per conversation. Saved history is shared by browsers connected to
+this local API. A failed save is visible; **Retry saving** only retries MongoDB
+persistence, not the AI request. Earlier saved send-outcome text remains readable
+as historical content, but cannot invoke a broker operation.
+
+Conversation text, destination names, and retrieved excerpts are sent to Google.
+Keys stay in the API. Existing authentication and network access controls for this
+local deployment are unchanged.
 
 ## Documentation retrieval (RAG)
 
-Both planning modes retrieve relevant documentation before calling Gemini.
-The knowledge corpus is the explicit `DOCUMENTS` list in
-`apps/backend/src/app/messaging-chat/messaging-chat-knowledge.service.ts`.
-Each entry defines `id`, `source`, `title`, `provider` and `text`. The `text` is
-what the model receives; `source` is a citation label, not a file to load.
-No vector database, embedding API, dependency or environment variable is required.
+Both planning modes retrieve up to three relevant entries from the explicit
+`DOCUMENTS` list in
+`apps/backend/src/app/messaging-chat/messaging-chat-knowledge.service.ts`. English
+keyword matching selects excerpts; there is no embedding model or vector store.
+The entries are sent to Gemini as reference data. Citations such as
+`[source: docs/messaging-chat.md#setup]` are model generated and may be incorrect.
 
-The latest user message is searched using case-insensitive keyword matching,
-inverse document frequency, title weighting and extra weight for configuration
-identifiers. Queries are capped at 2,000 characters and at most three excerpts
-are supplied. Each entry explicitly sets its provider to Azure, AWS or shared.
-AWS-only questions exclude Azure-specific entries and vice versa;
-comparison questions can retrieve both. Unmatched questions receive no excerpts.
-This first version is English keyword retrieval, so paraphrases and short follow-up
-questions may miss relevant documents.
+Edit `DOCUMENTS` to update the assistant's knowledge, then restart the API.
+Citation sources are labels; Markdown files are not loaded automatically. Never
+include secrets in knowledge entries. Saved chats, credentials, and captured
+message payloads are not indexed. Documentation cannot prove current health or
+message delivery; use captured reports and health endpoints for those facts.
 
-The model is instructed to cite used excerpts in reply text as
-`[source: docs/messaging-chat.md#setup]`, acknowledge missing documentation and
-treat excerpts as reference data. Citations are model-generated text, not verified
-links or a guarantee of factual correctness. Existing response shapes and the
-explicit Send button remain unchanged. Live catalog/tool results take precedence
-over documentation; retrieval never executes broker operations. Existing broker
-discovery still runs, so documentation questions retain the planner's current
-discovery behavior and latency.
+## API
 
-Saved chats, environment files, credentials and broker message bodies are not
-indexed. Retrieved excerpts are sent to the already configured Gemini service
-alongside the existing conversation/catalog context. Never put secrets in knowledge
-entries. No Markdown files are read or automatically indexed.
+- `GET /api/v1/messaging-chat/status`: key presence and selected model, without keys.
+- `POST /api/v1/messaging-chat/messages`: structured reply/draft planning.
+- `POST /api/v1/messaging-chat/messages/tools`: read-only tool planning.
+- `/api/v1/messaging-chat/conversations`: create, list, load, and append history.
 
-To test, edit the `chat-overview` entry's `text`, rebuild/restart the backend and
-ask about Overview in a new chat. Keep the entry text aligned with the Overview
-section above. Keep cited documentation and entry text in sync manually.
-Editing only Markdown does not change retrieval. Model answers and citations can
-still be inaccurate; a source label alone does not prove grounding.
-
-Entries are bundled with the backend; documentation files do not need to be
-deployed beside the application. Knowledge changes require a new build/restart.
-
-## Saved conversations
-
-User turns are saved before calling the planner. Assistant replies and draft context
-are appended after generation; confirmed-send outcomes are appended after the broker
-accepts the send. Chat history lists metadata only, 20 chats per page sorted by last
-update and ID. Selecting a chat fetches its current transcript and restores its mode.
-New chat and mode changes start a separate conversation without deleting old chats.
-Restored drafts are read-only conversation context; the active Send action is cleared.
-
-`ChatHistoryController` and `ChatHistoryService` store `ChatConversations` in the
-existing `MessageTrackingDb` MongoDB connection, with a unique ID and update-order
-index. Each chat is bounded to 200 entries and 1,000,000 UTF-8 JSON bytes; AI context
-still uses only the most recent 20 turns / roughly 60 KB. Revision-checked atomic
-appends prevent lost updates. UUID turn IDs make uncertain save retries idempotent.
-Conflicts require reselecting the conversation from history before continuing.
-This local dashboard has a shared history store, without per-user accounts or TTL.
-
-- `GET /api/v1/messaging-chat/conversations?page=1` lists summaries.
-- `POST /api/v1/messaging-chat/conversations` creates a UUID/mode record.
-- `GET /api/v1/messaging-chat/conversations/:id` reads the transcript.
-- `POST /api/v1/messaging-chat/conversations/:id/turns` appends a UUID turn using
-  the expected revision. Unknown fields, unsupported roles and oversized input fail validation.
-
-History save errors remain visible with a separate Retry saving action. A successful
-broker send clears its active draft before saving the outcome; a history retry never
-calls a broker. MongoDB persistence and broker acceptance are separate operations,
-so a crash between them can leave an incomplete transcript. Consult message tracking
-for actual delivery state. History is not a broker audit log or an exactly-once ledger.
-
-## Boundaries
-
-- The shared NestJS `MessagingChatRuntime` handles credentials, bounded input,
-  the destination catalog, Gemini `generateContent` transport, and draft/response
-  validation. The structured and tool-calling services have separate orchestration.
-  Assistant turns map to Gemini's model role; system instructions remain separate.
-- The backend provides destination names from Azure configuration and SQS
-  discovery. Credentials, connection strings, and queue URLs are not model context.
-  At most 200 destination entries are provided in one request.
-- The model cannot call send APIs. Its response is validated again with Zod and
-  checked against the destination catalog. Invalid/unknown destinations do not
-  produce a sendable draft. No HTML from model responses is rendered.
-- The frontend uses feature-local query/mutation hooks and separate transcript,
-  composer, and review components. Sending reuses the existing Azure/SQS APIs and
-  invalidates tracking queries. Automatic send retries are disabled. FIFO sends
-  reuse the draft's deduplication ID on explicit retries.
-- Active conversation context lives in browser state and saved transcripts live in
-  MongoDB. Planner input is capped at 20 turns and roughly 60 KB. Conversation text,
-  proposed message bodies, and destination names are sent to Google when asking
-  the assistant. Server configuration credentials and opaque Gemini tool signatures
-  are not added to chat history. Text entered into chat is saved as entered. Google's free-tier
-  pricing lists use of content for product improvement; review the applicable terms
-  before using sensitive data.
-
-`GET /api/v1/messaging-chat/status` reports configuration readiness without
-returning secrets. `POST /api/v1/messaging-chat/messages` accepts user/assistant
-turns only; system roles, extra fields, empty/oversized input are rejected.
-Missing keys, upstream errors, refusals, and incomplete responses are surfaced
-without fabricating a successful send. A failed broker request retains the draft;
-broker acceptance can be ambiguous after transport failures, so consult tracking
-before retrying. Standard queues do not guarantee send deduplication.
-
-The old `/e2e-tests` URL redirects to `/chat`. Policy APIs and classes are removed;
-historical demo MongoDB collections are left untouched and are no longer used.
-
-## Verification
-
-Run `yarn verify` and `yarn test:e2e`. AI protocol tests mock the upstream service;
-browser tests verify clarification, draft review, explicit Azure/AWS sends, error
-handling, and configuration guidance. A live LLM check additionally requires a
-valid API key and model access; tests do not spend API credits.
-
-Protocol references: [Gemini structured outputs](https://ai.google.dev/gemini-api/docs/generate-content/structured-output)
-and [GenerateContent tools and function responses](https://ai.google.dev/api/generate-content).
-See [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) for free-tier limits.
+The status endpoint does not verify model access, quotas, or billing. Tests mock
+Gemini responses and are not evidence of actual model availability.

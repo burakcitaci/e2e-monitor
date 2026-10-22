@@ -11,7 +11,7 @@ if (args.Length == 0 || args[0] is not ("publish" or "subscribe"))
 var connectionString = Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STRING");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    // Public emulator-only credentials, matching the repository's .env.example.
+    // Public emulator-only credentials, for the local Docker Service Bus emulator.
     connectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;" +
         "SharedAccessKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
         "UseDevelopmentEmulator=true";

@@ -76,7 +76,7 @@ describe('Messaging chat documentation retrieval', () => {
     expect(knowledge.retrieve('Overview')[0]).toMatchObject({
       id: 'chat-overview',
       source: 'docs/messaging-chat.md#overview',
-      text: 'Messaging Chat is a Gemini-powered assistant for preparing messages for local Azure Service Bus and AWS SQS emulators. It supports structured output and tool calling, uses relevant knowledge entries to answer documentation questions, and asks for missing message details. Drafts must use known destinations and are validated by the backend. The assistant does not send messages; the user reviews the destination and body and clicks Send message to publish through the existing messaging API.',
+      text: 'Messaging Chat is a Gemini-powered assistant for messaging questions and message draft preparation. It supports structured output, tool calling, documentation retrieval and MongoDB conversation history. Drafts use configured or saved destination metadata. This collector has no broker publishing or consumption capability; external applications publish and process messages.',
     });
   });
 });

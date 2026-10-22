@@ -25,7 +25,7 @@ export const createColumns = (
   sentByFilterFn: Filter,
   statusFilterFn: Filter,
 ): ColumnDef<TrackingMessage>[] => [
-  { id: 'actions', header: 'Actions', cell: MessageActionsCell },
+  { id: 'actions', header: 'Source', cell: MessageActionsCell },
   {
     accessorKey: 'body',
     header: 'Message',

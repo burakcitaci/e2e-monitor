@@ -9,16 +9,6 @@ const MessagingResources = React.lazy(
 );
 const MessagingChatPage = React.lazy(() => import('./features/messaging-chat'));
 const MessageDetailPage = React.lazy(() => import('./features/message-detail'));
-const AzureSbDetailPage = React.lazy(() =>
-  import('./features/azure-sb').then((module) => ({
-    default: module.AzureSbDetailPage,
-  })),
-);
-const AwsSqsDetailPage = React.lazy(() =>
-  import('./features/aws-sqs').then((module) => ({
-    default: module.AwsSqsDetailPage,
-  })),
-);
 const MessagesPage = React.lazy(() =>
   import('./features/messages').then((module) => ({
     default: module.MessagesPage,
@@ -58,8 +48,11 @@ export function App() {
               path="/e2e-tests"
               element={<Navigate to="/chat" replace />}
             />
-            <Route path="/sqs" element={<AwsSqsDetailPage />} />
-            <Route path="/azure-service-bus" element={<AzureSbDetailPage />} />
+            <Route path="/sqs" element={<Navigate to="/" replace />} />
+            <Route
+              path="/azure-service-bus"
+              element={<Navigate to="/" replace />}
+            />
           </Routes>
         </div>
       </SidebarInset>

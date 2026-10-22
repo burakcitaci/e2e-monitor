@@ -3,14 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../../lib/api-client';
-import { useChatReply, useChatStatus, useSendChatDraft } from './hooks';
+import { useChatReply, useChatStatus } from './hooks';
 
 vi.mock('../../../lib/api-client', () => ({
   apiClient: {
     getChatStatus: vi.fn(),
     chat: vi.fn(),
-    sendMessage: vi.fn(),
-    sendSqsMessage: vi.fn(),
   },
 }));
 const api = vi.mocked(apiClient);
@@ -43,8 +41,6 @@ describe('Chat query and send hooks', () => {
         { role: 'user', content: 'Send a message' },
       ]);
     });
-    expect(api.sendMessage).not.toHaveBeenCalled();
-    expect(api.sendSqsMessage).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(result.current.data?.reply).toBe('Which queue?'),
     );
@@ -57,55 +53,5 @@ describe('Chat query and send hooks', () => {
       await result.current.mutateAsync(turns);
     });
     expect(api.chat).toHaveBeenCalledWith(turns, 'tools');
-    expect(api.sendMessage).not.toHaveBeenCalled();
-    expect(api.sendSqsMessage).not.toHaveBeenCalled();
-  });
-  it('sends confirmed Azure drafts and invalidates tracking', async () => {
-    api.sendMessage.mockResolvedValue({ messageId: 'id', queueName: 'events' });
-    const invalidate = vi.spyOn(client, 'invalidateQueries');
-    const { result } = renderHook(() => useSendChatDraft(), { wrapper });
-    await act(async () => {
-      await result.current.mutateAsync({
-        requestId: 'stable-id',
-        draft: {
-          provider: 'azure',
-          destinationType: 'topic',
-          destination: 'events',
-          body: 'hello',
-        },
-      });
-    });
-    expect(api.sendMessage).toHaveBeenCalledWith({
-      messageId: 'stable-id',
-      sentBy: 'messaging-chat',
-      queue: 'events',
-      body: 'hello',
-    });
-    expect(invalidate).toHaveBeenCalledWith({
-      queryKey: ['tracking-messages'],
-    });
-  });
-  it('uses stable FIFO deduplication and never automatically retries a failed send', async () => {
-    api.sendSqsMessage.mockRejectedValue(new Error('Broker unavailable'));
-    const { result } = renderHook(() => useSendChatDraft(), { wrapper });
-    await act(async () => {
-      result.current.mutate({
-        requestId: 'stable-id',
-        draft: {
-          provider: 'aws',
-          destinationType: 'queue',
-          destination: 'orders.fifo',
-          body: 'hello',
-        },
-      });
-    });
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(api.sendSqsMessage).toHaveBeenCalledTimes(1);
-    expect(api.sendSqsMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messageGroupId: 'dashboard-chat',
-        messageDeduplicationId: 'stable-id',
-      }),
-    );
   });
 });

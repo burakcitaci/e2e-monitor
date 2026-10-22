@@ -25,8 +25,6 @@
   },
   "private": true,
   "dependencies": {
-    "@aws-sdk/client-sqs": "^3.1101.0",
-    "@azure/service-bus": "7.9.5",
     "@e2e-monitor/entities": "0.0.1",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",

@@ -8,7 +8,7 @@ import {
 } from '@jest/globals';
 import { ConfigService } from '@nestjs/config';
 import type { AppConfigService } from '../common/app-config.service';
-import type { AwsSqsService } from '../aws-sqs/aws-sqs.service';
+import type { MessageResourcesService } from '../message-resources/message-resources.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatToolsService } from './messaging-chat-tools.service';
 import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
@@ -48,8 +48,10 @@ describe('Separate Gemini tool-calling planner', () => {
         getServiceBusConfiguration: () => ({ UserConfig: { Namespaces: [] } }),
       } as unknown as AppConfigService,
       {
-        listQueueResources: async () => [{ name: 'orders' }],
-      } as unknown as AwsSqsService,
+        findMessageResources: async () => [
+          { name: 'orders', provider: 'aws', type: 'queue', status: 'active' },
+        ],
+      } as unknown as MessageResourcesService,
       new MessagingChatKnowledgeService(),
     );
     service = new MessagingChatToolsService(runtime);

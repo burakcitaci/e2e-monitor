@@ -30,7 +30,9 @@ export function ChatComposer({
         disabled={disabled}
         value={content}
         onChange={(event) => setContent(event.target.value)}
-        placeholder={'Send {"hello":"world"} to Azure topic application-events'}
+        placeholder={
+          'Prepare a draft for Azure topic application-events, or ask a messaging question'
+        }
       />
       <Button type="submit" disabled={disabled || !content.trim()}>
         Ask assistant

@@ -71,50 +71,32 @@ test('saves chats across reloads, restores the mode and resumes selected history
   ).toBeVisible();
 });
 
-test('retries saving a send outcome without publishing the message twice', async ({
+test('retries a failed history save without repeating the AI request', async ({
   page,
 }) => {
-  let sends = 0;
+  let plans = 0;
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     let data: unknown = [];
     if (path.endsWith('/messaging-chat/status'))
       data = { configured: true, model: 'gemini-3.5-flash-lite' };
-    else if (path.endsWith('/messaging-chat/messages'))
-      data = {
-        reply: 'Review the draft',
-        draft: {
-          provider: 'aws',
-          destinationType: 'queue',
-          destination: 'orders',
-          body: 'hello',
-        },
-      };
-    else if (path.endsWith('/aws-sqs/messages')) {
-      sends++;
-      data = {
-        messageId: 'saved-send',
-        queueName: 'orders',
-        queueUrl: 'http://localhost/orders',
-      };
+    else if (path.endsWith('/messaging-chat/messages')) {
+      plans++;
+      data = { reply: 'Prepared for review', draft: null };
     }
     await route.fulfill({ json: { success: true, data } });
   });
-  const chats = await installChatHistory(page, { failSentSave: true });
+  const chats = await installChatHistory(page, { failAssistantSave: true });
   await page.goto('/chat');
-  await page.getByLabel('Your message').fill('Send hello');
+  await page.getByLabel('Your message').fill('Explain message capture');
   await page.getByRole('button', { name: 'Ask assistant' }).click();
-  await page.getByRole('button', { name: 'Send message', exact: true }).click();
-  await expect(page.getByRole('log')).toContainText('Message ID: saved-send');
-  await expect(
-    page.getByRole('region', { name: 'Review message' }),
-  ).toBeHidden();
+  await expect(page.getByRole('log')).toContainText('Prepared for review');
   await page.getByRole('button', { name: 'Retry saving', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Retry saving', exact: true }),
   ).toBeHidden();
-  expect(sends).toBe(1);
-  expect([...chats.values()][0].turns).toHaveLength(3);
+  expect(plans).toBe(1);
+  expect([...chats.values()][0].turns).toHaveLength(2);
 });
 
 test('lists saved history in pages and lets the user select an older chat', async ({

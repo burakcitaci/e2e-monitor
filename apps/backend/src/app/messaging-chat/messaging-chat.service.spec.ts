@@ -8,7 +8,7 @@ import {
 } from '@jest/globals';
 import { ConfigService } from '@nestjs/config';
 import type { AppConfigService } from '../common/app-config.service';
-import type { AwsSqsService } from '../aws-sqs/aws-sqs.service';
+import type { MessageResourcesService } from '../message-resources/message-resources.service';
 import { MessagingChatService } from './messaging-chat.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
@@ -60,7 +60,15 @@ describe('LLM messaging planner', () => {
             },
           }),
         } as unknown as AppConfigService,
-        { listQueueResources: queues } as unknown as AwsSqsService,
+        {
+          findMessageResources: async () =>
+            (await queues()).map((queue) => ({
+              ...queue,
+              provider: 'aws',
+              type: 'queue',
+              status: 'active',
+            })),
+        } as unknown as MessageResourcesService,
         new MessagingChatKnowledgeService(),
       ),
     );
@@ -217,7 +225,7 @@ describe('LLM messaging planner', () => {
       draft: null,
     });
   });
-  it('accepts known AWS queues and tolerates AWS discovery failure for Azure', async () => {
+  it('accepts known AWS queues and tolerates saved catalog failure for Azure', async () => {
     fetchMock.mockResolvedValueOnce(
       result({
         reply: 'Ready',
@@ -230,7 +238,7 @@ describe('LLM messaging planner', () => {
       }),
     );
     expect((await service.reply(messages)).draft?.provider).toBe('aws');
-    queues.mockRejectedValueOnce(new Error('LocalStack offline'));
+    queues.mockRejectedValueOnce(new Error('Catalog unavailable'));
     expect((await service.reply(messages)).draft?.provider).toBe('azure');
   });
   it('fails clearly without credentials and makes no AI request', async () => {

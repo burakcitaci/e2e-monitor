@@ -7,15 +7,13 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { StatisticsCards } from './components/StatisticsCards';
 import { TrackingMessage } from '@e2e-monitor/entities';
 import { Button } from '../../components/ui/button';
-import { SendMessageDialog } from './components/SendMessageDialog';
-import { MessageCircle, Send } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const MessagingChatSheet = React.lazy(
   () => import('../messaging-chat/components/MessagingChatSheet'),
 );
 
 export const MessagesPage = () => {
-  const [sendOpen, setSendOpen] = React.useState(false);
   const [chatOpen, setChatOpen] = React.useState(false);
   const [chatLoaded, setChatLoaded] = React.useState(false);
   const chatLauncher = React.useRef<HTMLButtonElement>(null);
@@ -62,10 +60,6 @@ export const MessagesPage = () => {
             <MessageCircle className="mr-2 h-4 w-4" />
             Messaging Chat
           </Button>
-          <Button onClick={() => setSendOpen(true)}>
-            <Send className="mr-2 h-4 w-4" />
-            Send message
-          </Button>
         </div>
       </div>
       {chatLoaded && (
@@ -77,7 +71,6 @@ export const MessagesPage = () => {
           />
         </React.Suspense>
       )}
-      {sendOpen && <SendMessageDialog onClose={() => setSendOpen(false)} />}
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
         {/* Error Messages */}
         {error && (
@@ -101,8 +94,8 @@ export const MessagesPage = () => {
         <p className="text-sm text-muted-foreground">
           Application reports update automatically. Each observed subscriber has
           its own delivery row; Complete means that subscriber reported
-          successful broker settlement. The monitor does not automatically
-          consume Azure subscriptions.
+          successful broker settlement. External applications own all broker
+          publishing and consumption.
         </p>
 
         {/* Table */}

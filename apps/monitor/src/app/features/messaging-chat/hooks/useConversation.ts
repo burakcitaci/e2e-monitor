@@ -6,7 +6,7 @@ import type {
   SavedChat,
   SavedChatTurn,
 } from '@e2e-monitor/entities';
-import { useChatReply, useSendChatDraft } from '../api/hooks';
+import { useChatReply } from '../api/hooks';
 import { useChatStorage } from '../api/history';
 
 export interface TranscriptTurn extends ChatTurn {
@@ -17,7 +17,7 @@ const greeting: TranscriptTurn = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'What would you like to send? Tell me the provider, queue or topic, and message. I can help you find a destination too.',
+    'Ask about messaging or prepare a draft. This collector keeps drafts for review; external applications publish messages.',
 };
 
 function history(turns: TranscriptTurn[]): ChatTurn[] {
@@ -38,7 +38,6 @@ export function useConversation() {
   const [turns, setTurns] = useState<TranscriptTurn[]>([greeting]);
   const [ready, setReady] = useState<{
     draft: MessageDraft;
-    requestId: string;
   } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -49,7 +48,6 @@ export function useConversation() {
   const failedTurn = useRef<SavedChatTurn | null>(null);
   const busy = useRef(false);
   const reply = useChatReply(mode);
-  const send = useSendChatDraft();
   const storage = useChatStorage();
 
   function start() {
@@ -107,7 +105,6 @@ export function useConversation() {
     const next = [...turns, user];
     setTurns(next);
     setReady(null);
-    send.reset();
     try {
       await persist(user);
       const result = await reply.mutateAsync(history(next));
@@ -120,30 +117,8 @@ export function useConversation() {
           : result.reply,
       };
       setTurns([...next, assistant]);
-      if (result.draft)
-        setReady({ draft: result.draft, requestId: crypto.randomUUID() });
+      if (result.draft) setReady({ draft: result.draft });
       await persist(assistant);
-    } catch (cause) {
-      report(cause);
-    } finally {
-      finish();
-    }
-  }
-
-  async function confirm() {
-    if (!ready || busy.current || unsaved) return;
-    start();
-    try {
-      const result = await send.mutateAsync(ready);
-      // A successful broker send must never become a retryable old draft.
-      setReady(null);
-      const sent: TranscriptTurn = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `Message sent to ${ready.draft.provider === 'azure' ? 'Azure' : 'AWS'} ${ready.draft.destinationType} ${ready.draft.destination}. Message ID: ${result.messageId}`,
-      };
-      setTurns((current) => [...current, sent]);
-      await persist(sent);
     } catch (cause) {
       report(cause);
     } finally {
@@ -162,7 +137,6 @@ export function useConversation() {
     setUnsaved(false);
     setError(null);
     reply.reset();
-    send.reset();
   }
 
   async function select(id: string) {
@@ -179,7 +153,6 @@ export function useConversation() {
       setReady(null);
       setUnsaved(false);
       reply.reset();
-      send.reset();
     } catch (cause) {
       report(cause);
     } finally {
@@ -213,10 +186,8 @@ export function useConversation() {
     turns,
     ready,
     pending,
-    sending: send.isPending,
     error,
     ask,
-    confirm,
     reset,
     dismiss: () => setReady(null),
   };

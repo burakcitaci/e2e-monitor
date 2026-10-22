@@ -23,7 +23,7 @@ export function MessagingChatContent({
         <div>
           <h1 className="text-2xl font-bold">Messaging Chat</h1>
           <p className="text-muted-foreground">
-            Describe a message to send to an Azure queue/topic or AWS SQS queue.
+            Ask messaging questions or prepare a draft for your applications.
           </p>
         </div>
         <Button variant="outline" disabled={chat.pending} onClick={chat.reset}>
@@ -61,8 +61,8 @@ export function MessagingChatContent({
         {chat.mode === 'structured'
           ? 'Returns a message draft in one response.'
           : 'Uses destination lookup and draft preparation tools before replying.'}{' '}
-        Switching modes starts a new chat. Sending always requires your
-        confirmation.
+        Switching modes starts a new chat. Drafts are for review; this platform
+        does not publish messages.
       </p>
       {status.isLoading && (
         <p role="status">Checking assistant configuration…</p>
@@ -82,8 +82,7 @@ export function MessagingChatContent({
         <div role="alert" className="space-y-2 rounded-md border p-3">
           <p>
             This entry is not saved yet. Retry saving, or select the chat from
-            history to reload. Retrying only saves history; it never repeats a
-            broker send.
+            history to reload. Retrying only saves conversation history.
           </p>
           <Button
             variant="outline"
@@ -99,8 +98,6 @@ export function MessagingChatContent({
         <MessagePreview
           draft={chat.ready.draft}
           pending={chat.pending || chat.unsaved}
-          sending={chat.sending}
-          onSend={chat.confirm}
           onDismiss={chat.dismiss}
         />
       )}
@@ -111,8 +108,8 @@ export function MessagingChatContent({
       />
       <p className="text-xs text-muted-foreground">
         Conversation text and destination names are sent to Google Gemini. Chats
-        are saved in your local MongoDB. Review the draft before sending it to
-        your emulator.
+        are saved in your local MongoDB. External applications own broker
+        operations.
       </p>
     </section>
   );

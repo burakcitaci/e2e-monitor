@@ -1,61 +1,16 @@
-# Monitor E2E Tests
+# Monitor E2E tests
 
-End-to-end tests for the Monitor application using Playwright.
+Run `yarn test:e2e` (or `yarn nx e2e monitor-e2e`) after installing Chromium with
+`yarn playwright install chromium`. The Playwright config starts or reuses the
+frontend on port 4200. These tests mock API responses; they do not start MongoDB,
+call Gemini, or publish/consume broker messages.
 
-## Running Tests
+Coverage includes message lists and detail navigation, status polling, timing
+statistics, mobile layouts, AI planning in both modes, saved chat history, retrying
+failed history saves, and saved destination metadata. Collector checks ensure
+broker send/receive controls stay absent.
 
-```bash
-# Run all e2e tests
-yarn nx e2e monitor-e2e
-
-# Run in UI mode for debugging
-yarn nx e2e monitor-e2e --ui
-
-# Run specific test file
-yarn nx e2e monitor-e2e --grep="smoke"
-
-# Run in headed mode (see the browser)
-yarn nx e2e monitor-e2e --headed
-```
-
-## Test Structure
-
-- `src/smoke.spec.ts` - Critical smoke tests that verify basic app functionality
-- More test files can be added as needed
-
-## Prerequisites
-
-The e2e tests will automatically:
-
-- Start the backend server on port 3000
-- Start the frontend dev server on port 4200
-- Run tests against the running application
-- Shut down servers after tests complete
-
-## Configuration
-
-Configuration is in `playwright.config.ts`:
-
-- Base URL: `http://localhost:4200`
-- Retries: 2 on CI, 0 locally
-- Workers: 1 on CI, parallel locally
-- Browsers: Chromium (can be extended)
-
-## Writing Tests
-
-Use the Page Object Model pattern for complex interactions:
-
-```typescript
-test('should do something', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Click me' })).toBeVisible();
-});
-```
-
-## CI/CD Integration
-
-Tests are wired into Nx's dependency graph and will:
-
-- Run after the build step
-- Use cached results when possible
-- Report failures to CI systems
+For debugging, use `yarn nx e2e monitor-e2e --ui`, `--headed`, or `--grep`.
+The config uses Chromium, two retries in CI and none locally, with traces on the
+first retry. Browser output is stored in the project's ignored report folders.
+Real Azure Service Bus verification belongs to the C# example and Docker setup.

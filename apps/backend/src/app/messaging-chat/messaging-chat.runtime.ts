@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import type { ChatReply, ChatTurn } from '@e2e-monitor/entities';
 import { AppConfigService } from '../common/app-config.service';
-import { AwsSqsService } from '../aws-sqs/aws-sqs.service';
+import { MessageResourcesService } from '../message-resources/message-resources.service';
 import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 
 export const replySchema = z
@@ -111,7 +111,7 @@ export class MessagingChatRuntime {
   constructor(
     private readonly config: ConfigService,
     private readonly appConfig: AppConfigService,
-    private readonly sqs: AwsSqsService,
+    private readonly resources: MessageResourcesService,
     private readonly knowledge: MessagingChatKnowledgeService,
   ) {}
 
@@ -152,24 +152,38 @@ export class MessagingChatRuntime {
         destination: topic.Name,
       })),
     ]);
-    let awsAvailable = true;
+    let catalogAvailable = true;
     try {
-      const queues = await this.sqs.listQueueResources();
+      const resources = await this.resources.findMessageResources();
       destinations.push(
-        ...queues.map((queue) => ({
-          provider: 'aws',
-          destinationType: 'queue',
-          destination: queue.name,
-        })),
+        ...resources
+          .filter(
+            (resource) =>
+              resource.status === 'active' &&
+              (resource.provider === 'azure' ||
+                (resource.provider === 'aws' && resource.type === 'queue')),
+          )
+          .map((resource) => ({
+            provider: resource.provider,
+            destinationType: resource.type,
+            destination: resource.name,
+          })),
       );
     } catch {
-      awsAvailable = false;
+      catalogAvailable = false;
     }
-    const catalog = destinations.slice(0, 200);
+    const catalog = [
+      ...new Map(
+        destinations.map((destination) => [
+          JSON.stringify(destination),
+          destination,
+        ]),
+      ).values(),
+    ].slice(0, 200);
     return {
       key,
       catalog,
-      awsAvailable,
+      catalogAvailable,
       knowledge: this.knowledge.retrieve(messages.at(-1)?.content ?? ''),
       contents: messages
         .slice(messages.findIndex((message) => message.role === 'user'))

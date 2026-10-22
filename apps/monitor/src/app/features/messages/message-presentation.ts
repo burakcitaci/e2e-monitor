@@ -10,7 +10,6 @@ export function messageDetailPath(message: TrackingMessage) {
 }
 
 export function messageStatus(message: TrackingMessage): string {
-  if (message.pendingDeliveries?.length) return 'pending';
   if (message.disposition === 'complete') return 'completed';
   return message.disposition ?? message.status;
 }

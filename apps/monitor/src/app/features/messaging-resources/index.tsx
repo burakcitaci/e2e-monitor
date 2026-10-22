@@ -6,7 +6,6 @@ import { createColumns } from './components/Columns';
 import {
   useCreateMessageResource,
   useGetMessageResources,
-  useGetSqsQueueResources,
   useUpdateMessageResource,
 } from './api/messaging-resource';
 import { serviceBusConfig } from './lib/utils';
@@ -17,7 +16,6 @@ export default function MessagingResources() {
   const [currentResource, setCurrentResource] =
     useState<MessagingResource | null>(null);
   const { data: messageResources } = useGetMessageResources();
-  const { data: sqsResources, isLoading: sqsLoading, error: sqsError, refetch: refreshSqs } = useGetSqsQueueResources();
 
   const { mutate: createMessageResource } = useCreateMessageResource();
   const { mutate: updateMessageResource } = useUpdateMessageResource();
@@ -75,9 +73,6 @@ export default function MessagingResources() {
 
   const allMessageResources: MessagingResource[] = [
     ...(messageResources ?? []),
-    ...(sqsResources ?? []).filter((queue) => !(messageResources ?? []).some(
-      (saved) => saved.provider === queue.provider && saved.type === queue.type && saved.name === queue.name,
-    )),
     ...serviceBusConfig.Topics.map((topic) => ({
       id: `azure-topic-${topic.Name}`,
       name: topic.Name,
@@ -98,15 +93,10 @@ export default function MessagingResources() {
       <div className="flex flex-col gap-1 mb-4">
         <h1 className="text-2xl font-bold">Queues and Topics</h1>
         <h2 className="text-sm text-muted-foreground">
-          Manage your queues and topics here.
+          Manage saved destination metadata. This does not create or modify
+          broker resources.
         </h2>
       </div>
-
-      {sqsLoading && <p role="status">Discovering SQS queues…</p>}
-      {sqsError && <div role="alert" className="mb-4 text-sm text-destructive">
-        Could not load SQS queues: {sqsError.message}. Saved resources are still shown.
-        <button className="ml-2 underline" onClick={() => refreshSqs()}>Retry</button>
-      </div>}
 
       <DataTable
         searchKey="name"

@@ -6,7 +6,7 @@ import {
 } from './chat-history.schema';
 import { ChatHistoryController } from './chat-history.controller';
 import { ChatHistoryService } from './chat-history.service';
-import { AwsSqsModule } from '../aws-sqs/aws-sqs.module';
+import { MessageResourcesModule } from '../message-resources/message-resources.module';
 import { CommonModule } from '../common/common.module';
 import { MessagingChatController } from './messaging-chat.controller';
 import { MessagingChatService } from './messaging-chat.service';
@@ -17,7 +17,7 @@ import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.servic
 @Module({
   imports: [
     CommonModule,
-    AwsSqsModule,
+    MessageResourcesModule,
     MongooseModule.forFeature(
       [{ name: ChatConversation.name, schema: ChatConversationSchema }],
       'MessageTrackingDb',

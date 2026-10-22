@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   EmulatorType,
-  MessageDisposition,
   TrackingMessage,
   TrackingMessageDocument,
 } from './message.schema';
@@ -11,7 +10,13 @@ import { AppLogger } from '../common/logger.service';
 
 type NewTrackingMessage = Pick<
   TrackingMessage,
-  | 'messageId' | 'body' | 'sentBy' | 'sentAt' | 'status' | 'queue' | 'emulatorType'
+  | 'messageId'
+  | 'body'
+  | 'sentBy'
+  | 'sentAt'
+  | 'status'
+  | 'queue'
+  | 'emulatorType'
 >;
 
 @Injectable()
@@ -90,65 +95,5 @@ export class MessageService {
     }
 
     this.logger.log(`Removed tracking document ${id}`);
-  }
-
-  async markMessageReceived(
-    messageId: string,
-    emulatorType: EmulatorType,
-    receivedBy: string,
-  ): Promise<TrackingMessage | null> {
-    const update = await this.messageModel
-      .findOneAndUpdate(
-        { messageId, emulatorType },
-        {
-          $set: {
-            status: 'received',
-            receivedAt: new Date(),
-            receivedBy,
-          },
-        },
-        { new: true },
-      )
-      .lean()
-      .exec();
-
-    if (!update) {
-      this.logger.warn(
-        `No ${emulatorType} tracking document found for received message ${messageId}`,
-      );
-    }
-
-    return update;
-  }
-
-  async updateDisposition(
-    messageId: string,
-    emulatorType: EmulatorType,
-    disposition: MessageDisposition,
-    receivedBy: string,
-  ): Promise<TrackingMessage | null> {
-    const update = await this.messageModel
-      .findOneAndUpdate(
-        { messageId, emulatorType },
-        {
-          $set: {
-            disposition,
-            status: 'received',
-            receivedAt: new Date(),
-            receivedBy,
-          },
-        },
-        { new: true },
-      )
-      .lean()
-      .exec();
-
-    if (!update) {
-      this.logger.warn(
-        `No ${emulatorType} tracking document found for message ${messageId}`,
-      );
-    }
-
-    return update;
   }
 }

@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "../../../lib/api-client";
-import { MessageResources } from "../../../lib/schemas";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../../../lib/api-client';
+import { MessageResources } from '../../../lib/schemas';
 
 export const useGetMessageResources = () => {
   return useQuery({
@@ -9,16 +9,11 @@ export const useGetMessageResources = () => {
   });
 };
 
-export const useGetSqsQueueResources = () => useQuery({
-  queryKey: ['sqs-queue-resources'],
-  queryFn: () => apiClient.getSqsQueueResources(),
-  refetchInterval: 10000,
-});
-
 export const useUpdateMessageResource = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (resource: MessageResources) => apiClient.updateMessageResource(resource),
+    mutationFn: (resource: MessageResources) =>
+      apiClient.updateMessageResource(resource),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['message-resources'] });
     },

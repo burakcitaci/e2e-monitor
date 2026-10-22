@@ -3,7 +3,7 @@ import type { SavedChat } from '@e2e-monitor/entities';
 
 export async function installChatHistory(
   page: Page,
-  options: { failSentSave?: boolean } = {},
+  options: { failAssistantSave?: boolean } = {},
 ) {
   const chats = new Map<string, SavedChat>();
   await page.route(
@@ -30,11 +30,8 @@ export async function installChatHistory(
         data = chat;
       } else if (request.method() === 'POST') {
         const input = request.postDataJSON();
-        if (
-          options.failSentSave &&
-          input.turn.content.startsWith('Message sent to')
-        ) {
-          options.failSentSave = false;
+        if (options.failAssistantSave && input.turn.role === 'assistant') {
+          options.failAssistantSave = false;
           await route.fulfill({
             status: 503,
             json: { message: 'History temporarily unavailable' },

@@ -11,8 +11,6 @@ import {
 } from './capture-state';
 import { CaptureController } from './capture.controller';
 import { CaptureService } from './capture.service';
-import { ServiceBusModule } from '../service-bus/service-bus.module';
-import { ServiceBusWorker } from '../service-bus/service-bus.worker';
 
 const sent: CaptureEventDto = {
   schemaVersion: 1,
@@ -157,11 +155,5 @@ describe('Application capture', () => {
     await expect(
       controller.ingest('Bearer test-secret', sent),
     ).resolves.toMatchObject({ success: true });
-  });
-
-  it('does not register the automatic Service Bus consumer', () => {
-    expect(Reflect.getMetadata('providers', ServiceBusModule)).not.toContain(
-      ServiceBusWorker,
-    );
   });
 });

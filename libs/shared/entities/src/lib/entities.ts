@@ -21,5 +21,4 @@ export interface TrackingMessage {
   receivedBy?: string;
   disposition?: 'complete' | 'abandon' | 'deadletter' | 'defer';
   emulatorType?: 'sqs' | 'azure-service-bus';
-  pendingDeliveries?: { token: string; queue: string; expiresAt: Date }[];
 }

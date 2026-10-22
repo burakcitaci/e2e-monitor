@@ -4,14 +4,10 @@ import { Button } from '../../../components/ui/button';
 export function MessagePreview({
   draft,
   pending,
-  sending,
-  onSend,
   onDismiss,
 }: {
   draft: MessageDraft;
   pending: boolean;
-  sending: boolean;
-  onSend: () => void;
   onDismiss: () => void;
 }) {
   return (
@@ -30,12 +26,10 @@ export function MessagePreview({
         {draft.body}
       </pre>
       <p className="text-sm text-muted-foreground">
-        Nothing has been sent yet. Ask for changes, or send this message.
+        Draft only. Copy the payload into your publisher, or ask the assistant
+        for changes.
       </p>
       <div className="flex gap-2">
-        <Button disabled={pending} onClick={onSend}>
-          {sending ? 'Sending…' : 'Send message'}
-        </Button>
         <Button variant="outline" disabled={pending} onClick={onDismiss}>
           Discard draft
         </Button>

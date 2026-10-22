@@ -83,7 +83,7 @@ export const createColumns = (
       id: 'actions', // 👈 better than accessorKey for non-data columns
       cell: ({ row }) => (
         <div className="flex gap-2 justify-end">
-          {row.original.id.startsWith('aws-sqs:') ? <span className="text-xs text-muted-foreground">Discovered in SQS</span> : row.original.provider === Provider.AWS ? (
+          {row.original.provider === Provider.AWS ? (
             <>
               <Badge
                 variant={
