@@ -11,6 +11,7 @@ import { AppConfigService } from '../common/app-config.service';
 import { AppLogger } from '../common/logger.service';
 import { MessageProcessor, DispositionActions, MessageDisposition } from '../common/message-processor';
 import { PendingDeliveriesService } from '../messages/pending-deliveries.service';
+import { serializeServiceBusBody } from './message-body';
 
 @Injectable()
 export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
@@ -201,10 +202,7 @@ export class ServiceBusWorker implements OnModuleInit, OnModuleDestroy {
 
         const tracking = await this.messageService.ensureTracking({
           messageId,
-          body:
-            typeof message.body === 'string'
-              ? message.body
-              : JSON.stringify(message.body),
+          body: serializeServiceBusBody(message.body),
           sentBy:
             String(message.applicationProperties?.['sentBy'] ?? '') ||
             'external-service-bus',

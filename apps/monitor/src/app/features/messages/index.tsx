@@ -47,8 +47,7 @@ export const MessagesPage = () => {
         <div>
           <h1 className="text-2xl font-bold">Tracking Messages</h1>
           <h2 className="text-sm text-muted-foreground">
-            Send messages and choose how pending broker deliveries are
-            processed.
+            Follow messages reported by publishers and subscribers.
           </h2>
         </div>
         <div className="flex gap-2">
@@ -100,9 +99,10 @@ export const MessagesPage = () => {
         <StatisticsCards stats={stats} />
 
         <p className="text-sm text-muted-foreground">
-          New deliveries have a Receive / settle menu in the Actions column:
-          Complete, Abandon, Defer, or Dead-letter. History rows were already
-          processed; send a new message to try manual processing.
+          Application reports update automatically. Each observed subscriber has
+          its own delivery row; Complete means that subscriber reported
+          successful broker settlement. The monitor does not automatically
+          consume Azure subscriptions.
         </p>
 
         {/* Table */}

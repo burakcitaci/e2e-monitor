@@ -35,6 +35,10 @@ export const trackingMessageSchema = z.preprocess(
   z.object({
     _id: z.string().optional(),
     messageId: z.string().optional(),
+    captureId: z.string().optional(),
+    namespace: z.string().optional(),
+    trackingSource: z.literal('capture').optional(),
+    completedAt: z.coerce.date().optional(),
     body: z.string().optional(),
     sentBy: z.string().optional(),
     sentAt: z.coerce.date().optional(),
@@ -42,7 +46,10 @@ export const trackingMessageSchema = z.preprocess(
     queue: z.string().optional().nullable(),
     receivedAt: z.coerce.date().optional().nullable(),
     receivedBy: z.string().optional().nullable(),
-    disposition: z.enum(['complete', 'abandon', 'deadletter', 'defer']).optional().nullable(),
+    disposition: z
+      .enum(['complete', 'abandon', 'deadletter', 'defer'])
+      .optional()
+      .nullable(),
     emulatorType: z.enum(['sqs', 'azure-service-bus']).optional().nullable(),
     pendingDeliveries: z
       .array(
@@ -61,7 +68,7 @@ export const trackingMessageSchema = z.preprocess(
     timeToLive: z.number().optional(),
     scheduledEnqueueTime: z.coerce.date().optional(),
     applicationProperties: z.record(z.string(), z.any()).optional(),
-  })
+  }),
 );
 
 export type TrackingMessage = z.infer<typeof trackingMessageSchema>;
@@ -86,7 +93,9 @@ export const sendServiceBusMessageSchema = z.object({
   messageId: z.string().optional(),
   sentBy: z.string().optional(),
   receivedBy: z.string().optional(),
-  messageDisposition: z.enum(['complete', 'abandon', 'deadletter', 'defer']).optional(),
+  messageDisposition: z
+    .enum(['complete', 'abandon', 'deadletter', 'defer'])
+    .optional(),
   applicationProperties: z.record(z.string(), z.any()).optional(),
 });
 
@@ -100,7 +109,9 @@ export const receiveServiceBusMessageSchema = z.object({
   receivedBy: z.string(),
 });
 
-export type ReceiveServiceBusMessage = z.infer<typeof receiveServiceBusMessageSchema>;
+export type ReceiveServiceBusMessage = z.infer<
+  typeof receiveServiceBusMessageSchema
+>;
 
 // API response types - handle both wrapped and unwrapped responses
 // Try wrapped format first (what backend returns), then fallback to array
@@ -114,14 +125,14 @@ export const trackingMessagesResponseSchema = z.union([
 ]);
 
 export const trackingMessageResponseSchema = apiResponseSchema(
-  trackingMessageSchema
+  trackingMessageSchema,
 );
 
 export const sendMessageResponseSchema = apiResponseSchema(
   z.object({
     queueName: z.string(),
     messageId: z.string(),
-  })
+  }),
 );
 
 export const sendSqsMessageResponseSchema = apiResponseSchema(
@@ -130,7 +141,7 @@ export const sendSqsMessageResponseSchema = apiResponseSchema(
     queueUrl: z.string(),
     messageId: z.string(),
     md5OfBody: z.string().optional(),
-  })
+  }),
 );
 
 export const deleteMessageResponseSchema = z.object({
@@ -144,34 +155,38 @@ export const serviceBusConfigSchema = z.object({
     Namespaces: z.array(
       z.object({
         Name: z.string(),
-        Topics: z.array(
-          z.object({
-            Name: z.string(),
-            Properties: z.object({
-              DefaultMessageTimeToLive: z.string(),
-              DuplicateDetectionHistoryTimeWindow: z.string(),
-              RequiresDuplicateDetection: z.boolean(),
+        Topics: z
+          .array(
+            z.object({
+              Name: z.string(),
+              Properties: z.object({
+                DefaultMessageTimeToLive: z.string(),
+                DuplicateDetectionHistoryTimeWindow: z.string(),
+                RequiresDuplicateDetection: z.boolean(),
+              }),
+              Subscriptions: z.array(
+                z.object({
+                  Name: z.string(),
+                  DeadLetteringOnMessageExpiration: z.boolean(),
+                  MaxDeliveryCount: z.number(),
+                }),
+              ),
             }),
-            Subscriptions: z.array(
-              z.object({
-                Name: z.string(),
-                DeadLetteringOnMessageExpiration: z.boolean(),
+          )
+          .optional(),
+        Queues: z
+          .array(
+            z.object({
+              Name: z.string(),
+              Properties: z.object({
+                DefaultMessageTimeToLive: z.string(),
                 MaxDeliveryCount: z.number(),
-              })
-            ),
-          })
-        ).optional(),
-        Queues: z.array(
-          z.object({
-            Name: z.string(),
-            Properties: z.object({
-              DefaultMessageTimeToLive: z.string(),
-              MaxDeliveryCount: z.number(),
-              DeadLetteringOnMessageExpiration: z.boolean(),
+                DeadLetteringOnMessageExpiration: z.boolean(),
+              }),
             }),
-          })
-        ).optional(),
-      })
+          )
+          .optional(),
+      }),
     ),
     Logging: z.object({
       Type: z.string(),
@@ -192,7 +207,9 @@ export const sendSqsMessageSchema = z.object({
   messageDeduplicationId: z.string().optional(), // For FIFO queues
   messageAttributes: z.record(z.string(), z.any()).optional(),
   delaySeconds: z.number().optional(),
-  messageDisposition: z.enum(['complete', 'abandon', 'deadletter', 'defer']).optional(),
+  messageDisposition: z
+    .enum(['complete', 'abandon', 'deadletter', 'defer'])
+    .optional(),
 });
 
 export type SendSqsMessage = z.infer<typeof sendSqsMessageSchema>;
@@ -222,7 +239,9 @@ export const awsSqsMessagesResponseSchema = z.union([
   z.array(trackingMessageSchema), // Direct array format
 ]);
 
-export type AwsSqsMessagesResponse = z.infer<typeof awsSqsMessagesResponseSchema>;
+export type AwsSqsMessagesResponse = z.infer<
+  typeof awsSqsMessagesResponseSchema
+>;
 
 // Azure Service Bus Messages Response schema - handle grouped messages structure
 export const azureServiceBusMessagesResponseSchema = z.union([
@@ -230,7 +249,9 @@ export const azureServiceBusMessagesResponseSchema = z.union([
   z.array(trackingMessageSchema), // Direct array format
 ]);
 
-export type ServiceBusMessagesResponse = z.infer<typeof azureServiceBusMessagesResponseSchema>;
+export type ServiceBusMessagesResponse = z.infer<
+  typeof azureServiceBusMessagesResponseSchema
+>;
 
 // Message Resources schema - handle MongoDB ObjectId and date formats
 export const messageResourcesSchema = z.preprocess(
@@ -262,17 +283,25 @@ export const messageResourcesSchema = z.preprocess(
     provider: z.enum(['aws', 'azure']),
     type: z.enum(['queue', 'topic']),
     status: z.enum(['active', 'inactive']),
-  })
+  }),
 );
 
 export type MessageResources = z.infer<typeof messageResourcesSchema>;
 
 // Message Resources Response schema (for GET - returns array)
-export const messageResourcesResponseSchema = apiResponseSchema(z.array(messageResourcesSchema));
+export const messageResourcesResponseSchema = apiResponseSchema(
+  z.array(messageResourcesSchema),
+);
 
-export type MessageResourcesResponse = z.infer<typeof messageResourcesResponseSchema>;
+export type MessageResourcesResponse = z.infer<
+  typeof messageResourcesResponseSchema
+>;
 
 // Single Message Resource Response schema (for POST/PUT - returns single object)
-export const messageResourceResponseSchema = apiResponseSchema(messageResourcesSchema);
+export const messageResourceResponseSchema = apiResponseSchema(
+  messageResourcesSchema,
+);
 
-export type MessageResourceResponse = z.infer<typeof messageResourceResponseSchema>;
+export type MessageResourceResponse = z.infer<
+  typeof messageResourceResponseSchema
+>;

@@ -226,6 +226,17 @@ its cited section, and never include secrets. See [retrieval details and limits]
 
 ### Send and process messages
 
+Automatic Azure Service Bus consumption is currently disabled: `ServiceBusWorker`
+is commented out in the module providers. External applications own their
+subscriptions. The [C# publisher/subscriber example](examples/servicebus-csharp/README.md)
+reports send, receipt, and completion to `POST /api/v1/events` using a shared
+`CAPTURE_TOKEN` (local default: `local-capture-token`). Captures are persisted in
+MongoDB's `CapturedMessages` collection and included in Tracking Messages with
+separate rows per observed subscriber. The table refreshes every three seconds.
+Restart the API and C# processes after updating. Legacy manual-settlement behavior
+below still applies to existing live deliveries and SQS; Azure automatic worker
+behavior requires explicitly re-enabling its provider.
+
 On **Tracking Messages**, choose **Send message**, select Azure Service Bus or
 AWS SQS, then choose a queue (or an Azure topic) and enter JSON or plain text.
 Azure destinations come from the emulator configuration. AWS shows the default

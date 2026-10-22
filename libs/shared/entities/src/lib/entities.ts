@@ -7,6 +7,10 @@
 export interface TrackingMessage {
   _id: string;
   messageId: string;
+  captureId?: string;
+  namespace?: string;
+  trackingSource?: 'capture';
+  completedAt?: Date;
   body: string;
   sentBy: string;
   sentAt: Date;

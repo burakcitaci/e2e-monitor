@@ -6,7 +6,7 @@ import { MessageModule } from '../messages/messages.module';
 import { SERVICE_BUS_CLIENT } from './service-bus.constants';
 import { ServiceBusService } from './service-bus.service';
 import { ServiceBusController } from './service-bus.controller';
-import { ServiceBusWorker } from './service-bus.worker';
+// import { ServiceBusWorker } from './service-bus.worker';
 import { ServiceBusHealthIndicator } from './service-bus.health';
 
 @Module({
@@ -24,7 +24,8 @@ import { ServiceBusHealthIndicator } from './service-bus.health';
         }),
     },
     ServiceBusService,
-    ServiceBusWorker,
+    // External applications own their subscriptions. Capture reports update tracking.
+    // ServiceBusWorker,
     ServiceBusHealthIndicator,
   ],
   controllers: [ServiceBusController],

@@ -24,6 +24,7 @@ export function MessageActions({
   message: {
     _id?: string;
     status?: string;
+    trackingSource?: 'capture';
     pendingDeliveries?: TrackingMessage['pendingDeliveries'];
   };
 }) {
@@ -51,9 +52,26 @@ export function MessageActions({
     },
   });
   const pending = message._id ? (message.pendingDeliveries ?? []) : [];
+  if (message.trackingSource === 'capture') {
+    return (
+      <span
+        className="text-xs text-muted-foreground"
+        title="Reported by the application wrapper; broker settlement belongs to the subscriber."
+      >
+        Application report
+      </span>
+    );
+  }
   if (!pending.length)
     return (
-      <span className="text-xs text-muted-foreground" title={message.status === 'received' ? 'This delivery was already processed. Send a new message to use manual actions.' : 'Actions appear when the broker delivers this message.'}>
+      <span
+        className="text-xs text-muted-foreground"
+        title={
+          message.status === 'received'
+            ? 'This delivery was already processed. Send a new message to use manual actions.'
+            : 'Actions appear when the broker delivers this message.'
+        }
+      >
         {message.status === 'received' ? 'History' : 'Waiting for broker'}
       </span>
     );

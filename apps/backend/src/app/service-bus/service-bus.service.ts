@@ -11,6 +11,7 @@ import {
 } from '@azure/service-bus';
 import { randomUUID } from 'crypto';
 import { SERVICE_BUS_CLIENT } from './service-bus.constants';
+import { serializeServiceBusBody } from './message-body';
 import { SendServiceBusMessageDto } from './dto/send-service-bus-message.dto';
 import { ReceiveServiceBusMessageDto } from './dto/receive-service-bus-message.dto';
 import { AppConfigService } from '../common/app-config.service';
@@ -148,10 +149,7 @@ export class ServiceBusService implements OnModuleDestroy {
         data: {
           queueName: entityName,
           messageId,
-          body:
-            typeof message.body === 'string'
-              ? message.body
-              : JSON.stringify(message.body),
+          body: serializeServiceBusBody(message.body),
         },
       };
     } finally {

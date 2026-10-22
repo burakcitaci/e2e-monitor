@@ -13,6 +13,7 @@ import { PendingDeliveriesService } from './pending-deliveries.service';
 import { SettleMessageDto } from './dto/settle-message.dto';
 import { EmulatorType, emulatorTypes } from './message.schema';
 import { AppLogger } from '../common/logger.service';
+import { CaptureService } from '../capture/capture.service';
 import {
   CreateTrackingMessageDto,
   UpdateTrackingMessageDto,
@@ -24,13 +25,21 @@ export class MessagesController {
     private readonly messagesService: MessageService,
     private readonly logger: AppLogger,
     private readonly pendingDeliveries: PendingDeliveriesService,
+    private readonly capture: CaptureService,
   ) {
     this.logger.setContext(MessagesController.name);
   }
 
   @Get('tracking')
   async getTrackingMessages() {
-    const result = await this.messagesService.findTrackingMessages();
+    const [history, captured] = await Promise.all([
+      this.messagesService.findTrackingMessages(),
+      this.capture.trackingRows(),
+    ]);
+    const result = [...history, ...captured].sort(
+      (a, b) =>
+        new Date(b.sentAt ?? 0).getTime() - new Date(a.sentAt ?? 0).getTime(),
+    );
     this.logger.log(`Retrieved ${result.length} tracking messages`);
     return {
       success: true,
@@ -47,8 +56,17 @@ export class MessagesController {
     if (!emulatorTypes.includes(emulator as EmulatorType)) {
       throw new BadRequestException(`Unsupported emulator type: ${emulator}`);
     }
-    const result = await this.messagesService.findTrackingMessagesByEmulator(
-      emulator as EmulatorType,
+    const [history, captured] = await Promise.all([
+      this.messagesService.findTrackingMessagesByEmulator(
+        emulator as EmulatorType,
+      ),
+      emulator === 'azure-service-bus'
+        ? this.capture.trackingRows()
+        : Promise.resolve([]),
+    ]);
+    const result = [...history, ...captured].sort(
+      (a, b) =>
+        new Date(b.sentAt ?? 0).getTime() - new Date(a.sentAt ?? 0).getTime(),
     );
     this.logger.log(
       `Retrieved ${result.length} tracking messages for emulator ${emulator}`,
