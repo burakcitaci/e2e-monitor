@@ -7,6 +7,7 @@ const SINGULAR_TERMS: Readonly<Record<string, string>> = {
   queues: 'queue',
   topics: 'topic',
   messages: 'message',
+  policies: 'policy',
   destinations: 'destination',
   tools: 'tool',
   emulators: 'emulator',
@@ -54,7 +55,14 @@ const DOCUMENTS: readonly KnowledgeDocument[] = [
     source: 'docs/messaging-chat.md#planning-modes',
     title: 'Tool calling limits and destination discovery',
     provider: 'shared',
-    text: 'list_destinations returns configured Azure queues/topics and saved AWS queue metadata from a catalog snapshot. prepare_message validates a draft without sending. Tool mode permits four Gemini requests and eight function calls per turn, with a shared 30-second AI-request deadline. There are no shell, arbitrary HTTP or broker-send tools, automatic retries or mode fallbacks. Documentation cannot prove current queue availability or delivery status.',
+    text: 'list_destinations returns configured Azure queues/topics and saved AWS queue metadata. list_policy_routes returns routes observed in captured messages. prepare_message and prepare_policy validate drafts without publishing or saving. Tool mode permits four Gemini requests and eight function calls per turn, with a shared 30-second deadline. There are no shell, arbitrary HTTP or broker-send tools, automatic retries or mode fallbacks.',
+  },
+  {
+    id: 'policy-planning',
+    source: 'docs/messaging-chat.md#policy-planning',
+    title: 'Delivery policy planning',
+    provider: 'shared',
+    text: 'A delivery policy matches namespace, destination, publisher service, subscription and subscriber service. Each sent message becomes pending until its deadline, then passed, late or missing. Policy status uses the required success percentage over a rolling evaluation window after the minimum sample count is reached. Chat prepares a policy draft; only the Create policy button saves it.',
   },
   {
     id: 'chat-setup',

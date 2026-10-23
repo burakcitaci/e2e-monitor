@@ -75,6 +75,53 @@ export const trackingMessageSchema = z.preprocess(
 
 export type TrackingMessage = z.infer<typeof trackingMessageSchema>;
 
+export const policySchema = z.object({
+  _id: z.string(),
+  name: z.string(),
+  namespace: z.string(),
+  sourceService: z.string(),
+  destinationService: z.string(),
+  destination: z.string(),
+  subscription: z.string(),
+  thresholdSeconds: z.number(),
+  requiredSuccessPercentage: z.number(),
+  evaluationWindowMinutes: z.number(),
+  minimumSampleCount: z.number(),
+  enabled: z.boolean(),
+  effectiveFrom: z.coerce.date(),
+});
+export const policiesResponseSchema = apiResponseSchema(z.array(policySchema));
+export const policyResponseSchema = apiResponseSchema(policySchema);
+export const policyEvaluationSchema = z.object({
+  policyId: z.string(),
+  status: z.enum(['disabled', 'no_data', 'insufficient_data', 'pass', 'fail']),
+  counts: z.object({
+    total: z.number(),
+    eligible: z.number(),
+    pending: z.number(),
+    passed: z.number(),
+    late: z.number(),
+    missing: z.number(),
+  }),
+  successPercentage: z.number().nullable(),
+  p95Seconds: z.number().nullable(),
+  thresholdSeconds: z.number(),
+  requiredSuccessPercentage: z.number(),
+  evaluatedAt: z.string(),
+  messages: z.array(
+    z.object({
+      messageId: z.string(),
+      detailId: z.string(),
+      sentAt: z.string(),
+      receivedAt: z.string().optional(),
+      latencySeconds: z.number().nullable(),
+      outcome: z.enum(['pending', 'passed', 'late', 'missing']),
+    }),
+  ),
+});
+export type PolicyEvaluation = z.infer<typeof policyEvaluationSchema>;
+export type Policy = z.infer<typeof policySchema>;
+
 // API response types - handle both wrapped and unwrapped responses
 // Try wrapped format first (what backend returns), then fallback to array
 export const trackingMessagesResponseSchema = z.union([

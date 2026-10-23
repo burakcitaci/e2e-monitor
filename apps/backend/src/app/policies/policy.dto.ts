@@ -1,0 +1,67 @@
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+export class CreatePolicyDto {
+  @IsString() name!: string;
+  @IsString() namespace!: string;
+  @IsString() sourceService!: string;
+  @IsString() destinationService!: string;
+  @IsString() destination!: string;
+  @IsString() subscription!: string;
+  @Type(() => Number) @IsNumber() @Min(0.001) thresholdSeconds!: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  requiredSuccessPercentage?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  evaluationWindowMinutes?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  minimumSampleCount?: number;
+  @IsOptional() @IsBoolean() enabled?: boolean;
+}
+
+export class UpdatePolicyDto {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() namespace?: string;
+  @IsOptional() @IsString() sourceService?: string;
+  @IsOptional() @IsString() destinationService?: string;
+  @IsOptional() @IsString() destination?: string;
+  @IsOptional() @IsString() subscription?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.001)
+  thresholdSeconds?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  requiredSuccessPercentage?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  evaluationWindowMinutes?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  minimumSampleCount?: number;
+  @IsOptional() @IsBoolean() enabled?: boolean;
+}

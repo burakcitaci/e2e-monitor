@@ -23,6 +23,10 @@ import {
   MessageResources,
   messageResourcesResponseSchema,
   messageResourceResponseSchema,
+  policiesResponseSchema,
+  policyResponseSchema,
+  policyEvaluationSchema,
+  Policy,
 } from './schemas';
 
 // API Response types
@@ -58,6 +62,34 @@ class ApiClient {
 
   constructor(baseUrl = config.api.baseUrl) {
     this.baseUrl = baseUrl;
+  }
+
+  async getPolicies() {
+    const response = await this.request(
+      '/policies',
+      undefined,
+      policiesResponseSchema,
+    );
+    return (response as ApiResponse<Policy[]>).data ?? [];
+  }
+
+  async createPolicy(policy: Omit<Policy, '_id' | 'effectiveFrom'>) {
+    const response = await this.request(
+      '/policies',
+      { method: 'POST', body: JSON.stringify(policy) },
+      policyResponseSchema,
+    );
+    return (response as ApiResponse<Policy>).data;
+  }
+
+  async evaluatePolicy(id: string) {
+    const response = await this.request(
+      `/policies/${encodeURIComponent(id)}/evaluate`,
+      undefined,
+      apiResponseSchema(policyEvaluationSchema),
+    );
+    return (response as ApiResponse<z.infer<typeof policyEvaluationSchema>>)
+      .data;
   }
 
   private async request<T>(

@@ -6,17 +6,8 @@ import { MessagesTable } from './components/MessagesTable';
 import { ErrorMessage } from './components/ErrorMessage';
 import { StatisticsCards } from './components/StatisticsCards';
 import { TrackingMessage } from '@e2e-monitor/entities';
-import { Button } from '../../components/ui/button';
-import { MessageCircle } from 'lucide-react';
-
-const MessagingChatSheet = React.lazy(
-  () => import('../messaging-chat/components/MessagingChatSheet'),
-);
 
 export const MessagesPage = () => {
-  const [chatOpen, setChatOpen] = React.useState(false);
-  const [chatLoaded, setChatLoaded] = React.useState(false);
-  const chatLauncher = React.useRef<HTMLButtonElement>(null);
   const { data: messages = [], isLoading, error } = useTrackingMessages();
 
   // Calculate statistics by disposition and emulator
@@ -48,29 +39,7 @@ export const MessagesPage = () => {
             Follow messages reported by publishers and subscribers.
           </h2>
         </div>
-        <div className="flex gap-2">
-          <Button
-            ref={chatLauncher}
-            variant="outline"
-            onClick={() => {
-              setChatLoaded(true);
-              setChatOpen(true);
-            }}
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Messaging Chat
-          </Button>
-        </div>
       </div>
-      {chatLoaded && (
-        <React.Suspense fallback={<p role="status">Loading assistant…</p>}>
-          <MessagingChatSheet
-            open={chatOpen}
-            onOpenChange={setChatOpen}
-            onReturnFocus={() => chatLauncher.current?.focus()}
-          />
-        </React.Suspense>
-      )}
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
         {/* Error Messages */}
         {error && (

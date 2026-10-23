@@ -12,9 +12,23 @@ export interface MessageDraft {
   body: string;
 }
 
+export interface PolicyDraft {
+  name: string;
+  namespace: string;
+  sourceService: string;
+  destinationService: string;
+  destination: string;
+  subscription: string;
+  thresholdSeconds: number;
+  requiredSuccessPercentage: number;
+  evaluationWindowMinutes: number;
+  minimumSampleCount: number;
+}
+
 export interface ChatReply {
   reply: string;
   draft: MessageDraft | null;
+  policyDraft?: PolicyDraft | null;
 }
 
 export interface SavedChatTurn extends ChatTurn {

@@ -19,6 +19,18 @@ const draft = {
   destination: 'events',
   body: '{"hello":"world"}',
 };
+const policyDraft = {
+  name: 'Financing delivery',
+  namespace: 'local.servicebus',
+  sourceService: 'financing-api',
+  destinationService: 'orders-consumer',
+  destination: 'application-events',
+  subscription: 'logging-service',
+  thresholdSeconds: 1,
+  requiredSuccessPercentage: 95,
+  evaluationWindowMinutes: 30,
+  minimumSampleCount: 1,
+};
 const messages = [
   {
     role: 'user' as const,
@@ -39,6 +51,7 @@ const result = (value: unknown) =>
 
 describe('LLM messaging planner', () => {
   let service: MessagingChatService;
+  let runtime: MessagingChatRuntime;
   let config: ConfigService;
   const queues = jest.fn<() => Promise<{ name: string }[]>>();
   const fetchMock = jest.spyOn(globalThis, 'fetch');
@@ -48,30 +61,29 @@ describe('LLM messaging planner', () => {
       GEMINI_MODEL: 'gemini-3.5-flash-lite',
     });
     queues.mockResolvedValue([{ name: 'orders' }]);
-    service = new MessagingChatService(
-      new MessagingChatRuntime(
-        config,
-        {
-          getServiceBusConfiguration: () => ({
-            UserConfig: {
-              Namespaces: [
-                { Queues: [{ Name: 'orders' }], Topics: [{ Name: 'events' }] },
-              ],
-            },
-          }),
-        } as unknown as AppConfigService,
-        {
-          findMessageResources: async () =>
-            (await queues()).map((queue) => ({
-              ...queue,
-              provider: 'aws',
-              type: 'queue',
-              status: 'active',
-            })),
-        } as unknown as MessageResourcesService,
-        new MessagingChatKnowledgeService(),
-      ),
+    runtime = new MessagingChatRuntime(
+      config,
+      {
+        getServiceBusConfiguration: () => ({
+          UserConfig: {
+            Namespaces: [
+              { Queues: [{ Name: 'orders' }], Topics: [{ Name: 'events' }] },
+            ],
+          },
+        }),
+      } as unknown as AppConfigService,
+      {
+        findMessageResources: async () =>
+          (await queues()).map((queue) => ({
+            ...queue,
+            provider: 'aws',
+            type: 'queue',
+            status: 'active',
+          })),
+      } as unknown as MessageResourcesService,
+      new MessagingChatKnowledgeService(),
     );
+    service = new MessagingChatService(runtime);
     fetchMock.mockResolvedValue(
       result({ reply: 'Review this message.', draft }),
     );
@@ -107,6 +119,55 @@ describe('LLM messaging planner', () => {
       configured: true,
       model: 'gemini-3.5-flash-lite',
     });
+  });
+  it('routes policy language to policy planning and supplies observed routes', async () => {
+    service = new MessagingChatService(runtime, {
+      allStates: async () => [
+        {
+          id: 'capture-id',
+          state: {
+            captureId: 'capture-id',
+            messageId: 'message-id',
+            namespace: policyDraft.namespace,
+            destination: policyDraft.destination,
+            sent: {
+              service: policyDraft.sourceService,
+              occurredAt: '2026-10-23T10:00:00Z',
+              body: 'hello',
+            },
+            deliveries: [
+              {
+                subscription: policyDraft.subscription,
+                service: policyDraft.destinationService,
+              },
+            ],
+          },
+        },
+      ],
+    } as never);
+    fetchMock.mockResolvedValueOnce(
+      result({ reply: 'Review this policy.', draft: null, policyDraft }),
+    );
+
+    await expect(
+      service.reply([
+        {
+          role: 'user',
+          content:
+            'Create a policy where financing-api sends to application-events and orders-consumer receives through logging-service within 1 second.',
+        },
+      ]),
+    ).resolves.toMatchObject({ policyDraft });
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(payload.systemInstruction.parts[0].text).toContain(
+      'POLICY CREATION conversation',
+    );
+    expect(payload.systemInstruction.parts[0].text).toContain(
+      policyDraft.namespace,
+    );
+    expect(payload.systemInstruction.parts[0].text).toContain(
+      'Never ask for a provider',
+    );
   });
   it('includes retrieved documentation and source instructions without altering user turns', async () => {
     await service.reply([

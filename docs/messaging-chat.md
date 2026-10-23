@@ -3,7 +3,7 @@
 ## Overview
 
 Messaging Chat retains the Gemini AI integration, structured output and tool
-calling modes, retrieved documentation context, message draft previews, and
+calling modes, retrieved documentation context, message and policy draft previews, and
 MongoDB conversation history. It answers messaging questions and prepares drafts.
 The platform is a collector: it has no broker publish, receive, or settlement
 capability. External applications own those operations.
@@ -32,13 +32,26 @@ conversation restores its transcript and mode. **New chat** starts a fresh one.
 ## Planning modes
 
 - **Structured output** requests a validated reply and optional draft from Gemini.
-- **Tool calling** allows `list_destinations` and `prepare_message` only. These
-  tools read the catalog and validate drafts. There are no broker or shell tools.
+- **Tool calling** allows destination and observed-policy-route lookup plus
+  message and policy preparation. These tools read local metadata and validate
+  drafts. There are no broker or shell tools.
 
 Drafts show their provider, destination, and exact payload for review. Copy the
 payload into an external publisher or ask for changes. The platform has no Send
 message button or broker send endpoint. Switching modes starts a new conversation.
 Historical drafts do not regain an active preview when loading an old chat.
+
+## Policy planning
+
+Describe the publisher, destination, subscription, subscriber and delivery
+deadline in chat. The assistant can use captured routes to prepare a policy
+draft. The draft defaults to 95% success over 30 minutes with one minimum sample
+unless the request specifies other values. Review the complete business rule and
+select **Create policy** to persist it. Preparing a draft never writes a policy.
+
+Matching sent messages remain pending until their deadline, then become passed,
+late, or missing. Policy status uses the required success percentage after the
+minimum sample count has been reached.
 
 The catalog combines `config/servicebus-config.json` with active saved destination
 metadata in MongoDB. The collector does not discover SQS queues or connect to

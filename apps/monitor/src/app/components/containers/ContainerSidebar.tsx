@@ -1,40 +1,57 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 import {
   IconDashboard,
   IconInnerShadowTop,
+  IconMessageChatbot,
   IconMessageCircle,
-  } from "@tabler/icons-react"
+} from '@tabler/icons-react';
 
-import { Sidebar,SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarFooter } from "../ui/sidebar"
-import { NavMain } from "./nav-main"
-import { Separator } from "../ui/separator"
-
-
-
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarContent,
+  SidebarFooter,
+} from '../ui/sidebar';
+import { NavMain } from './nav-main';
+import { Separator } from '../ui/separator';
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
   },
   navMain: [
     {
-    title: "Main",
-    url: "/",
-    icon: IconDashboard,
-  },
+      title: 'Main',
+      url: '/',
+      icon: IconDashboard,
+    },
     {
-    title: "Messaging Resources",
-    url: "/messaging-resources",
-    icon: IconMessageCircle,
-  }],
+      title: 'Messaging Resources',
+      url: '/messaging-resources',
+      icon: IconMessageCircle,
+    },
+    {
+      title: 'Messaging Chat',
+      url: '/chat',
+      icon: IconMessageChatbot,
+    },
+    {
+      title: 'Policies',
+      url: '/policies',
+      icon: IconMessageCircle,
+    },
+  ],
   navClouds: [],
   navSecondary: [],
   documents: [],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -51,16 +68,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span className="text-base font-semibold">E2E Monitor</span>
               </a>
             </SidebarMenuButton>
-            <Separator orientation="horizontal"  className="h-0.5 data-[orientation=horizontal]:w-full" />
+            <Separator
+              orientation="horizontal"
+              className="h-0.5 data-[orientation=horizontal]:w-full"
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-         <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} />
       </SidebarContent>
-      <SidebarFooter>
-        
-      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
-  )
+  );
 }

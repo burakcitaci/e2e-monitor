@@ -12,6 +12,7 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { MessageResourcesModule } from './message-resources/message-resources.module';
 import { MessagingChatModule } from './messaging-chat/messaging-chat.module';
+import { PoliciesModule } from './policies/policies.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { MessagingChatModule } from './messaging-chat/messaging-chat.module';
     MessageModule,
     MessageResourcesModule,
     MessagingChatModule,
+    PoliciesModule,
     HealthModule,
   ],
   providers: [

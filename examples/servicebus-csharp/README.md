@@ -33,6 +33,15 @@ Start Backend B in terminal 1:
 dotnet run --project examples/servicebus-csharp -- subscribe
 ```
 
+For a policy-specific subscriber:
+
+```powershell
+dotnet run --project examples/servicebus-csharp -- subscribe `
+  --topic application-events `
+  --subscription logging-service `
+  --receiver orders-consumer
+```
+
 Publish from Backend A in terminal 2:
 
 ```powershell
@@ -40,6 +49,23 @@ dotnet run --project examples/servicebus-csharp -- publish
 # Or send a custom body (JSON or plain text):
 dotnet run --project examples/servicebus-csharp -- publish 'Hello from financing'
 ```
+
+Publish traffic matching that policy, including multiple samples:
+
+```powershell
+dotnet run --project examples/servicebus-csharp -- publish `
+  --topic application-events `
+  --sender financing-api `
+  --body 'hello-world' `
+  --count 20 `
+  --interval-ms 100
+```
+
+The corresponding policy route is the printed namespace plus topic
+`application-events`, publisher `financing-api`, subscription `logging-service`,
+and subscriber `orders-consumer`. Start the subscriber before publishing for a
+passing delivery-time test. Publish first, wait beyond the policy deadline, then
+start the subscriber to produce late deliveries.
 
 The publisher prints `[sent]` after broker acceptance. The subscriber prints
 `[received]`, the body, and `[completed]` after successful handling and settlement.
@@ -81,8 +107,14 @@ Bodies are included in the send report (maximum 100,000 characters); use synthet
 data in this example. External messages without a UUID capture ID are handled
 without reporting. Policy evaluation and a published NuGet package are not included.
 
-Optional overrides: `SERVICE_BUS_CONNECTION_STRING`, `SERVICE_BUS_TOPIC`, and
-`SERVICE_BUS_SUBSCRIPTION`. An unset or blank connection string uses the local
+CLI options override environment variables. Use `--topic`, `--subscription`,
+`--sender`, `--receiver`, `--body`, `--count`, `--interval-ms`, `--capture-api`,
+and `--capture-token`. Run `dotnet run --project examples/servicebus-csharp -- --help`
+for the compact reference.
+
+Environment overrides remain available: `SERVICE_BUS_CONNECTION_STRING`,
+`SERVICE_BUS_TOPIC`, `SERVICE_BUS_SUBSCRIPTION`, `CAPTURE_SERVICE`,
+`CAPTURE_API_URL`, and `CAPTURE_TOKEN`. An unset or blank connection string uses the local
 emulator default. Environment variables are read from the process; the app does
 not load `.env`. If running the C# app inside Docker, override the connection
 string endpoint with the emulator's reachable container hostname instead of localhost.

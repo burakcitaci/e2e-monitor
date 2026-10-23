@@ -19,6 +19,18 @@ const draft = {
   destination: 'orders',
   body: 'hello',
 };
+const policyDraft = {
+  name: 'Financing delivery',
+  namespace: 'local.servicebus',
+  sourceService: 'financing-api',
+  destinationService: 'orders-consumer',
+  destination: 'application-events',
+  subscription: 'logging-service',
+  thresholdSeconds: 1,
+  requiredSuccessPercentage: 95,
+  evaluationWindowMinutes: 30,
+  minimumSampleCount: 1,
+};
 const messages = [
   { role: 'user' as const, content: 'Send hello to AWS queue orders' },
 ];
@@ -39,10 +51,11 @@ const call = (name: string, args: unknown = {}) =>
 describe('Separate Gemini tool-calling planner', () => {
   const fetchMock = jest.spyOn(globalThis, 'fetch');
   let service: MessagingChatToolsService;
+  let runtime: MessagingChatRuntime;
   let config: ConfigService;
   beforeEach(() => {
     config = new ConfigService({ GEMINI_API_KEY: 'test-key' });
-    const runtime = new MessagingChatRuntime(
+    runtime = new MessagingChatRuntime(
       config,
       {
         getServiceBusConfiguration: () => ({ UserConfig: { Namespaces: [] } }),
@@ -114,7 +127,12 @@ describe('Separate Gemini tool-calling planner', () => {
       payloads[0].tools[0].functionDeclarations.map(
         (tool: { name: string }) => tool.name,
       ),
-    ).toEqual(['list_destinations', 'prepare_message']);
+    ).toEqual([
+      'list_destinations',
+      'prepare_message',
+      'list_policy_routes',
+      'prepare_policy',
+    ]);
     expect(payloads[1].contents[1].parts[0]).toMatchObject({
       thoughtSignature: 'opaque-signature',
       functionCall: { id: 'call-1' },
@@ -140,6 +158,48 @@ describe('Separate Gemini tool-calling planner', () => {
     expect(
       new Set(fetchMock.mock.calls.map(([, request]) => request?.signal)).size,
     ).toBe(1);
+  });
+  it('grounds a policy draft in observed message routes', async () => {
+    const capture = {
+      allStates: async () => [
+        {
+          id: 'capture-id',
+          state: {
+            captureId: 'capture-id',
+            messageId: 'message-id',
+            namespace: policyDraft.namespace,
+            destination: policyDraft.destination,
+            sent: {
+              service: policyDraft.sourceService,
+              occurredAt: '2026-10-23T10:00:00Z',
+              body: 'hello',
+            },
+            deliveries: [
+              {
+                subscription: policyDraft.subscription,
+                service: policyDraft.destinationService,
+              },
+            ],
+          },
+        },
+      ],
+    };
+    service = new MessagingChatToolsService(runtime, capture as never);
+    fetchMock
+      .mockResolvedValueOnce(call('list_policy_routes'))
+      .mockResolvedValueOnce(call('prepare_policy', policyDraft))
+      .mockResolvedValueOnce(response([{ text: 'Please review.' }]));
+
+    await expect(
+      service.reply([{ role: 'user', content: 'Create a delivery policy' }]),
+    ).resolves.toMatchObject({ policyDraft });
+    const second = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
+    expect(
+      second.contents[2].parts[0].functionResponse.response.routes[0],
+    ).toMatchObject({
+      sourceService: 'financing-api',
+      destinationService: 'orders-consumer',
+    });
   });
   it('answers a follow-up without inventing a draft or executing thought parts', async () => {
     fetchMock.mockResolvedValueOnce(

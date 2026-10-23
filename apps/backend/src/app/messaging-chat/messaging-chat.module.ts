@@ -13,11 +13,13 @@ import { MessagingChatService } from './messaging-chat.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatToolsService } from './messaging-chat-tools.service';
 import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
+import { CaptureModule } from '../capture/capture.module';
 
 @Module({
   imports: [
     CommonModule,
     MessageResourcesModule,
+    CaptureModule,
     MongooseModule.forFeature(
       [{ name: ChatConversation.name, schema: ChatConversationSchema }],
       'MessageTrackingDb',

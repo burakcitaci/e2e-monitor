@@ -23,6 +23,22 @@ export const replySchema = z
       })
       .strict()
       .nullable(),
+    policyDraft: z
+      .object({
+        name: z.string().min(1).max(120),
+        namespace: z.string().min(1).max(260),
+        sourceService: z.string().min(1).max(120),
+        destinationService: z.string().min(1).max(120),
+        destination: z.string().min(1).max(260),
+        subscription: z.string().min(1).max(260),
+        thresholdSeconds: z.number().positive(),
+        requiredSuccessPercentage: z.number().min(0).max(100),
+        evaluationWindowMinutes: z.number().int().positive(),
+        minimumSampleCount: z.number().int().positive(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -33,7 +49,7 @@ export const outputFormat = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['reply', 'draft'],
+    required: ['reply', 'draft', 'policyDraft'],
     properties: {
       reply: { type: 'string' },
       draft: {
@@ -48,6 +64,43 @@ export const outputFormat = {
               destinationType: { type: 'string', enum: ['queue', 'topic'] },
               destination: { type: 'string' },
               body: { type: 'string' },
+            },
+          },
+        ],
+      },
+      policyDraft: {
+        anyOf: [
+          { type: 'null' },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'name',
+              'namespace',
+              'sourceService',
+              'destinationService',
+              'destination',
+              'subscription',
+              'thresholdSeconds',
+              'requiredSuccessPercentage',
+              'evaluationWindowMinutes',
+              'minimumSampleCount',
+            ],
+            properties: {
+              name: { type: 'string' },
+              namespace: { type: 'string' },
+              sourceService: { type: 'string' },
+              destinationService: { type: 'string' },
+              destination: { type: 'string' },
+              subscription: { type: 'string' },
+              thresholdSeconds: { type: 'number', exclusiveMinimum: 0 },
+              requiredSuccessPercentage: {
+                type: 'number',
+                minimum: 0,
+                maximum: 100,
+              },
+              evaluationWindowMinutes: { type: 'integer', minimum: 1 },
+              minimumSampleCount: { type: 'integer', minimum: 1 },
             },
           },
         ],

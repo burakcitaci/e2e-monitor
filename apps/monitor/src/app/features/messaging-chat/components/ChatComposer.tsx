@@ -31,7 +31,7 @@ export function ChatComposer({
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={
-          'Prepare a draft for Azure topic application-events, or ask a messaging question'
+          'Create a policy for financing-api to reach orders-consumer within 1 second'
         }
       />
       <Button type="submit" disabled={disabled || !content.trim()}>

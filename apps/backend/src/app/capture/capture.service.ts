@@ -71,6 +71,17 @@ export class CaptureService {
     );
   }
 
+  async allStates() {
+    return this.model
+      .find()
+      .select({ state: 1 })
+      .lean()
+      .exec()
+      .then((items) =>
+        items.map((item) => ({ id: String(item._id), state: item.state })),
+      );
+  }
+
   async detail(id: string) {
     const capture = await this.model.findById(id).lean().exec();
     if (!capture) return null;

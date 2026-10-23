@@ -39,4 +39,20 @@ export const chatReplySchema = z.object({
     })
     .strict()
     .nullable(),
+  policyDraft: z
+    .object({
+      name: z.string(),
+      namespace: z.string(),
+      sourceService: z.string(),
+      destinationService: z.string(),
+      destination: z.string(),
+      subscription: z.string(),
+      thresholdSeconds: z.number().positive(),
+      requiredSuccessPercentage: z.number().min(0).max(100),
+      evaluationWindowMinutes: z.number().int().positive(),
+      minimumSampleCount: z.number().int().positive(),
+    })
+    .strict()
+    .nullable()
+    .optional(),
 });

@@ -5,6 +5,7 @@ import { ChatComposer } from './components/ChatComposer';
 import { ChatTranscript } from './components/ChatTranscript';
 import { MessagePreview } from './components/MessagePreview';
 import { ChatHistory } from './components/ChatHistory';
+import { PolicyPreview } from './components/PolicyPreview';
 
 export default function MessagingChatPage() {
   const chat = useConversation();
@@ -23,7 +24,7 @@ export function MessagingChatContent({
         <div>
           <h1 className="text-2xl font-bold">Messaging Chat</h1>
           <p className="text-muted-foreground">
-            Ask messaging questions or prepare a draft for your applications.
+            Ask messaging questions or prepare message and policy drafts.
           </p>
         </div>
         <Button variant="outline" disabled={chat.pending} onClick={chat.reset}>
@@ -59,8 +60,8 @@ export function MessagingChatContent({
       </div>
       <p className="text-sm text-muted-foreground">
         {chat.mode === 'structured'
-          ? 'Returns a message draft in one response.'
-          : 'Uses destination lookup and draft preparation tools before replying.'}{' '}
+          ? 'Returns a message or policy draft in one response.'
+          : 'Uses observed route lookup and draft preparation tools before replying.'}{' '}
         Switching modes starts a new chat. Drafts are for review; this platform
         does not publish messages.
       </p>
@@ -94,9 +95,16 @@ export function MessagingChatContent({
         </div>
       )}
       <ChatTranscript turns={chat.turns} pending={chat.pending} />
-      {chat.ready && (
+      {chat.ready?.draft && (
         <MessagePreview
           draft={chat.ready.draft}
+          pending={chat.pending || chat.unsaved}
+          onDismiss={chat.dismiss}
+        />
+      )}
+      {chat.ready?.policyDraft && (
+        <PolicyPreview
+          draft={chat.ready.policyDraft}
           pending={chat.pending || chat.unsaved}
           onDismiss={chat.dismiss}
         />

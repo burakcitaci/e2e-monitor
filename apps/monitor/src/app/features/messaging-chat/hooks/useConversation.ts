@@ -3,6 +3,7 @@ import type {
   ChatMode,
   ChatTurn,
   MessageDraft,
+  PolicyDraft,
   SavedChat,
   SavedChatTurn,
 } from '@e2e-monitor/entities';
@@ -17,7 +18,7 @@ const greeting: TranscriptTurn = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Ask about messaging or prepare a draft. This collector keeps drafts for review; external applications publish messages.',
+    'Ask about messaging or describe a delivery policy. I can prepare message and policy drafts for your review.',
 };
 
 function history(turns: TranscriptTurn[]): ChatTurn[] {
@@ -37,7 +38,8 @@ export function useConversation() {
   const [mode, setMode] = useState<ChatMode>('structured');
   const [turns, setTurns] = useState<TranscriptTurn[]>([greeting]);
   const [ready, setReady] = useState<{
-    draft: MessageDraft;
+    draft?: MessageDraft;
+    policyDraft?: PolicyDraft;
   } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -112,12 +114,17 @@ export function useConversation() {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: result.reply,
-        context: result.draft
-          ? `${result.reply}\nPrepared draft: ${JSON.stringify(result.draft)}`
-          : result.reply,
+        context:
+          result.draft || result.policyDraft
+            ? `${result.reply}\nPrepared draft: ${JSON.stringify(result.draft ?? result.policyDraft)}`
+            : result.reply,
       };
       setTurns([...next, assistant]);
-      if (result.draft) setReady({ draft: result.draft });
+      if (result.draft || result.policyDraft)
+        setReady({
+          draft: result.draft ?? undefined,
+          policyDraft: result.policyDraft ?? undefined,
+        });
       await persist(assistant);
     } catch (cause) {
       report(cause);
