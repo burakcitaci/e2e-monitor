@@ -1,6 +1,6 @@
-# Emulator Monitor
+# E2E Monitor
 
-Emulator Monitor collects message activity reported by external applications,
+E2E Monitor collects message activity reported by external applications,
 correlates publisher and subscriber reports in MongoDB, and displays message
 status, payloads, subscriber timelines, and timing statistics. Messaging Chat
 retains Gemini AI replies, draft preparation, documentation retrieval, and saved
