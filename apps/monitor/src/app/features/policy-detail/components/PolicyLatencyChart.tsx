@@ -9,15 +9,9 @@ import {
   YAxis,
 } from 'recharts';
 import type { PolicyEvaluation } from '../../../lib/schemas';
-import { useNavigate } from 'react-router';
 import { useId, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 import { latencyBuckets } from '../lib/latency-buckets';
-
-type ChartMessage = PolicyEvaluation['messages'][number] & {
-  timestamp: number;
-  latency: number | null;
-};
 
 export function PolicyLatencyChart({
   evaluation,
@@ -28,7 +22,6 @@ export function PolicyLatencyChart({
   from?: string;
   to?: string;
 }) {
-  const navigate = useNavigate();
   const gradientId = `latency-${useId().replace(/:/g, '')}`;
   const [spacing, setSpacing] = useState<'message' | 'time'>('message');
   const rangeFrom = Date.parse(from ?? '');
@@ -80,54 +73,6 @@ export function PolicyLatencyChart({
       : maximum <= evaluation.thresholdSeconds
         ? 'var(--color-blue-300)'
         : `url(#${gradientId})`;
-  const pointColor = (latency: number) =>
-    latency > evaluation.thresholdSeconds
-      ? 'var(--destructive)'
-      : 'var(--color-blue-300)';
-  const marker = ({
-    cx,
-    cy,
-    payload,
-  }: {
-    cx?: number;
-    cy?: number;
-    payload?: ChartMessage;
-  }) => {
-    if (
-      cx === undefined ||
-      cy === undefined ||
-      !payload ||
-      payload.latency === null
-    )
-      return <g />;
-    if (aggregated)
-      return (
-        <circle cx={cx} cy={cy} r={2} fill={pointColor(payload.latency)} />
-      );
-    const description = `${payload.messageId} · Sent: ${payload.sentAt} · Received: ${payload.receivedAt} · ${payload.latency.toFixed(3)}s · ${payload.outcome}`;
-    return (
-      <a
-        href={`/messages/${encodeURIComponent(payload.detailId)}`}
-        aria-label={`Open message ${payload.messageId}`}
-        onClick={(event) => {
-          event.preventDefault();
-          navigate(`/messages/${encodeURIComponent(payload.detailId)}`);
-        }}
-      >
-        <circle
-          cx={cx}
-          cy={cy}
-          r={spacing === 'time' ? 2 : 3}
-          fill={pointColor(payload.latency)}
-          stroke="var(--background)"
-          strokeWidth={1.5}
-          className="cursor-pointer"
-        >
-          <title>{description}</title>
-        </circle>
-      </a>
-    );
-  };
   if (!data.length) {
     return (
       <div className="flex h-72 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
@@ -350,26 +295,8 @@ export function PolicyLatencyChart({
                 type="monotoneX"
                 stroke={lineColor}
                 strokeWidth={2}
-                dot={marker}
-                activeDot={({
-                  cx,
-                  cy,
-                  payload,
-                }: {
-                  cx?: number;
-                  cy?: number;
-                  payload?: ChartMessage;
-                }) => (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={5}
-                    fill={pointColor(payload?.latency ?? 0)}
-                    stroke="var(--background)"
-                    strokeWidth={2}
-                    pointerEvents="none"
-                  />
-                )}
+                dot={false}
+                activeDot={false}
                 isAnimationActive={false}
                 connectNulls
               />
@@ -385,7 +312,7 @@ export function PolicyLatencyChart({
             The line connects {received} received message
             {received === 1 ? '' : 's'} by sent time. Missing and pending
             messages have no latency value and remain in the evidence table.
-            Click a marker to inspect its message.{' '}
+            Open a message from the evidence table to inspect it.{' '}
             {spacing === 'message'
               ? 'Messages are evenly spaced in send order. Time gaps are not to scale. Dense ranges automatically use p95 time buckets.'
               : 'Positions follow actual sent timestamps, so bursts can overlap.'}{' '}

@@ -88,25 +88,16 @@ test('time range reloads the policy chart and evidence from the same analysis', 
     body: await chartCard.screenshot(),
     contentType: 'image/png',
   });
-  await expect(chart.getByRole('link')).toHaveCount(30);
-  const positions = await chart
-    .locator('a circle')
-    .evaluateAll((markers) =>
-      markers.map((marker) => Number(marker.getAttribute('cx'))),
-    );
-  expect(new Set(positions).size).toBe(30);
-  expect(
-    Math.min(
-      ...positions
-        .slice(1)
-        .map((position, index) => position - positions[index]),
-    ),
-  ).toBeGreaterThan(10);
+  await expect(chart.locator('circle')).toHaveCount(0);
+  const perMessageCurve = await chart
+    .locator('.recharts-line-curve')
+    .getAttribute('d');
+  expect((perMessageCurve?.match(/[LC]/g) ?? []).length).toBe(29);
   await page.getByRole('button', { name: 'Time', exact: true }).click();
   await expect(chart.locator('.recharts-line-curve')).toBeAttached();
   const curve = await chart.locator('.recharts-line-curve').getAttribute('d');
   expect((curve?.match(/[LC]/g) ?? []).length).toBe(29);
-  await expect(chart.getByRole('link')).toHaveCount(30);
+  await expect(chart.locator('circle')).toHaveCount(0);
   await page.getByRole('button', { name: 'Per message', exact: true }).click();
   await page.getByLabel('Time range', { exact: true }).selectOption('10080');
   await expect(
@@ -144,12 +135,21 @@ test('time range reloads the policy chart and evidence from the same analysis', 
     const widthBefore = await chartScroller.evaluate(
       (element) => element.scrollWidth,
     );
-    for (const marker of [
-      chart.locator('.recharts-line-dots circle').first(),
-      chart.locator('.recharts-line-dots circle').last(),
-    ]) {
-      await marker.hover();
+    await chart.scrollIntoViewIfNeeded();
+    for (const fraction of [0, 1]) {
+      const position = await chart
+        .locator('.recharts-line-curve')
+        .evaluate((element, fraction) => {
+          const path = element as SVGPathElement;
+          const point = path.getPointAtLength(path.getTotalLength() * fraction);
+          const screen = new DOMPoint(point.x, point.y).matrixTransform(
+            path.getScreenCTM()!,
+          );
+          return { x: screen.x, y: screen.y };
+        }, fraction);
+      await page.mouse.move(position.x, position.y);
       await expect(chart.locator('.recharts-tooltip-wrapper')).toBeVisible();
+      await expect(chart.locator('circle')).toHaveCount(0);
       expect(
         await chartScroller.evaluate((element) => element.scrollWidth),
       ).toBe(widthBefore);
@@ -169,14 +169,7 @@ test('time range reloads the policy chart and evidence from the same analysis', 
       'offset',
       '0.5',
     );
-    expect(
-      await chart
-        .locator('.recharts-line-dots circle[fill="var(--destructive)"]')
-        .count(),
-    ).toBeGreaterThan(0);
-    expect(
-      await chart.locator('.recharts-line-dots circle').count(),
-    ).toBeLessThanOrEqual(120);
+    await expect(chart.locator('circle')).toHaveCount(0);
     expect(
       await chart.evaluate(
         (element) => element.scrollWidth <= element.clientWidth,

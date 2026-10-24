@@ -121,15 +121,45 @@ clocks are unavailable; completion statistics cover observed subscribers only.
 
 Reports are best effort. The example uses a bounded HTTP timeout without durable
 buffering, batching, or retries. A broker operation may succeed while its capture
-report is lost. Policy evaluation and a published NuGet package are not included.
+report is lost. A published NuGet package is not included.
+
+## Delivery policies
+
+Create policies on the **Policies** page or prepare a policy draft in AI chat
+and review it before creating it. A policy matches namespace, publisher service,
+destination, subscription, and receiver service. Configure the delivery deadline,
+required success percentage, evaluation window, and minimum sample count.
+For example, require 95% of messages from `financing-api` to `application-events`
+to reach `orders-consumer` through `logging-service` within one second.
+
+The API evaluates policies automatically every 30 seconds and stores evaluation
+history in MongoDB. Delivery latency measures send to receive, independently of
+handler completion. Messages still within their delivery deadline are pending;
+overdue messages without a matching receive report count as missing.
+
+Policy details support the last 15 or 30 minutes, 1 or 4 hours, 1 day, 1 week,
+and 30 days. Historical analysis applies the current policy rules to messages
+sent in that selected range; live status uses the configured evaluation window.
+The chart and evidence table use the same analysis.
+
+Charts stay within the page width and show lines without dots. Sparse short
+ranges support per-message or actual-time spacing. More than 120 messages
+automatically switches to p95 time buckets with at most 120 points for short
+ranges. Day, week, and 30-day views use 15-minute, hourly, and 6-hour buckets,
+respectively. Tooltips show bucket p95, received/total counts, and maximum latency.
+The line is red above the deadline and blue at or below it. Lines connect
+populated buckets across empty intervals; empty buckets do not mean zero latency.
+The evidence table retains individual messages and links to their details.
+Chart aggregation does not change policy evaluation results.
 
 ## Messaging Chat
 
-AI functionality remains available from **Messaging Chat** on the tracking page,
+AI functionality is available from the floating chat button across pages,
 or `/chat`. Configure `GEMINI_API_KEY` in the API environment. Both **Structured
 output** and **Tool calling** modes remain, with MongoDB conversation history and
 retrieved documentation context. Drafts can be reviewed or copied; there is no
-broker send button or send endpoint. Future chat workflows can be added separately.
+broker send button or send endpoint. Policy drafts can be reviewed and created
+through the same policy creation flow as the Policies page.
 
 Destination names come from configured Azure example entities and active saved
 resource metadata. This is a catalog, not live discovery or a broker health check.
