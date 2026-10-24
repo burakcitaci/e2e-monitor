@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve } from 'node:path';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -43,7 +44,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'yarn dev:monitor',
+    command:
+      'node ../../node_modules/vite/bin/vite.js --host localhost --port 4200 --strictPort',
+    cwd: resolve(__dirname, '../monitor'),
     port: 4200,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,

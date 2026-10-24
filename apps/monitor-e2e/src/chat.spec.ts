@@ -53,7 +53,7 @@ for (const mode of ['structured', 'tools'] as const) {
       await installChatHistory(page);
       await page.goto('/');
       const launcher = page.getByRole('main').getByRole('button', {
-        name: 'Messaging Chat',
+        name: 'Open Messaging Chat',
         exact: true,
       });
       await launcher.click();
@@ -88,7 +88,7 @@ for (const mode of ['structured', 'tools'] as const) {
       await expect(popup).toBeHidden();
       await expect(launcher).toBeFocused();
       await expect(
-        page.getByRole('button', { name: 'Messaging Chat', exact: true }),
+        page.getByRole('button', { name: 'Open Messaging Chat', exact: true }),
       ).toHaveCount(1);
       await launcher.click();
       await expect(review).toContainText(destination);

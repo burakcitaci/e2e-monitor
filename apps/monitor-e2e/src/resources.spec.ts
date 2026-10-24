@@ -47,7 +47,7 @@ test('collector has no send or settlement controls and redirects retired broker 
     await page.goto(path);
     await expect(page).toHaveURL(/\/$/);
     await expect(
-      page.getByRole('button', { name: 'Messaging Chat', exact: true }),
+      page.getByRole('button', { name: 'Open Messaging Chat', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Send message', exact: true }),

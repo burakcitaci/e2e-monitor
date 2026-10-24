@@ -10,7 +10,6 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LoadingSpinner } from './components/ui/loading-spinner';
 import { Toaster } from './components/ui/sonner';
 
-
 interface ProvidersProps {
   children: React.ReactNode;
 }
@@ -55,13 +54,16 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
           disableTransitionOnChange
         >
           <ActiveThemeProvider>
-            <Suspense fallback={<LoadingSpinner />}>
-              {children}
-            </Suspense>
+            <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
             <Toaster />
           </ActiveThemeProvider>
         </ThemeProvider>
-        {isDev && <ReactQueryDevtools initialIsOpen={false} />}
+        {isDev && (
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition="bottom-left"
+          />
+        )}
       </QueryClientProvider>
     </ErrorBoundary>
   );
