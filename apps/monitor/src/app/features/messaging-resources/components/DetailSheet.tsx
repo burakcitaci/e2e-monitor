@@ -15,7 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '../../../components/ui/sheet';
-import { MessagingResource } from '../lib/entities';
+import type { ResourceForm } from '../lib/resource-form';
 import {
   uniqueNamesGenerator,
   Config,
@@ -34,8 +34,8 @@ interface DetailSheetProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   editing: boolean;
-  form: Omit<MessagingResource, 'id'>;
-  setForm: (form: Omit<MessagingResource, 'id'>) => void;
+  form: ResourceForm;
+  setForm: (form: ResourceForm) => void;
   saving?: boolean;
   handleSave: () => void;
 }

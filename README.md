@@ -24,6 +24,25 @@ The current capture integration supports Azure Service Bus through the
 The workspace uses Nx and Yarn workspaces with strict TypeScript. Use Node.js 22
 from `.nvmrc` and Yarn Classic 1.22. Dependencies are pinned by `yarn.lock`.
 
+### Monitor UI structure
+
+Feature pages live in `apps/monitor/src/app/features/<feature>/index.tsx`.
+Page entry points own selection and form state and compose smaller components:
+
+- `components/` contains feature-specific presentation such as forms, tables,
+  charts, and detail sections.
+- `api/hooks.ts` owns React Query keys, polling, mutations, and cache invalidation.
+  Policy creation uses the same mutation from both the policy list and AI chat.
+- `lib/` contains pure analysis, form conversion, and configuration helpers.
+
+List and detail routes use matching feature boundaries: `messages` and
+`message-detail`, `policies` and `policy-detail`. Shared page headers, sections,
+back links, and loading/error states live in `components/common/Page.tsx`;
+detail statistics use `components/common/DetailPage.tsx`. The application shell
+lives in `components/layout/`, with navigation labels and active-route matching
+defined in `lib/navigation.ts`. Shared table and shadcn primitives remain under
+`components/data-table/` and `components/ui/`.
+
 ## Start locally
 
 ```powershell

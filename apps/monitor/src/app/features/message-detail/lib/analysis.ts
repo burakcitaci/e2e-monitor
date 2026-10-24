@@ -1,4 +1,4 @@
-import type { TrackingMessage } from '../../lib/schemas';
+import type { TrackingMessage } from '../../../lib/schemas';
 
 export function durationMs(
   start: Date | undefined | null,

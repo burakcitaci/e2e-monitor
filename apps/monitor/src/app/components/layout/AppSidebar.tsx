@@ -15,38 +15,20 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarContent,
-  SidebarFooter,
 } from '../ui/sidebar';
-import { NavMain } from './nav-main';
+import { NavMain } from './NavMain';
 import { Separator } from '../ui/separator';
+import { navigationItems } from '../../lib/navigation';
 
-const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
-  navMain: [
-    {
-      title: 'Messages',
-      url: '/',
-      icon: IconMessageCircle,
-    },
-    {
-      title: 'Resources',
-      url: '/messaging-resources',
-      icon: IconListCheck,
-    },
-    {
-      title: 'Policies',
-      url: '/policies',
-      icon: IconShieldCheck,
-    },
-  ],
-  navClouds: [],
-  navSecondary: [],
-  documents: [],
+const navigationIcons = {
+  '/': IconMessageCircle,
+  '/messaging-resources': IconListCheck,
+  '/policies': IconShieldCheck,
 };
+const sidebarItems = navigationItems.map((item) => ({
+  ...item,
+  icon: navigationIcons[item.url],
+}));
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -71,9 +53,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={sidebarItems} />
       </SidebarContent>
-      <SidebarFooter></SidebarFooter>
     </Sidebar>
   );
 }

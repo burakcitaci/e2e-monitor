@@ -1,25 +1,13 @@
 import { useLocation } from 'react-router';
 import { Separator } from '../ui/separator';
 import { SidebarTrigger } from '../ui/sidebar';
-import { ModeToggle } from './mode-toggle';
-import { ThemeSelector } from './ThemeSelector';
+import { ModeToggle } from '../common/mode-toggle';
+import { ThemeSelector } from '../common/ThemeSelector';
+import { pageTitle } from '../../lib/navigation';
 
-type NavItem = { title: string; url: string };
-
-export function SiteHeader({ items }: { items: NavItem[] }) {
+export function SiteHeader() {
   const { pathname } = useLocation();
-  const current = items.find(
-    (item) => item.url === pathname && item.url !== '/',
-  );
-  const title = pathname.startsWith('/messages/')
-    ? 'Message details'
-    : pathname.startsWith('/policies/')
-      ? 'Policy details'
-      : pathname === '/policies'
-        ? 'Policies'
-        : pathname === '/chat'
-          ? 'Messaging Chat'
-          : (current?.title ?? 'Messages');
+  const title = pageTitle(pathname);
   return (
     <header className="relative flex h-(--header-height) shrink-0 items-center border-b">
       <div className="flex w-full items-center px-4 lg:px-6">

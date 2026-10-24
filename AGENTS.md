@@ -30,9 +30,11 @@
 
 ## Conventions
 - Register lazy feature routes in `apps/monitor/src/app/app.tsx`; page entry points live in `features/<feature>/index.tsx`.
-- Keep page selection in local state and pass data, pending flags, and actions into child components; see `apps/monitor/src/app/features/e2e-tests/index.tsx`.
-- API hooks have multiple locations; prefer feature-local `api/hooks.ts` for new features, following `apps/monitor/src/app/features/e2e-tests/api/hooks.ts`; shared tracking hooks remain in `apps/monitor/src/app/hooks/api/tracking-messages.ts`.
-- Give queries stable keys, guard dependent queries with `enabled`, and invalidate affected queries after mutations; see `apps/monitor/src/app/features/e2e-tests/api/hooks.ts`.
+- Feature entry points compose pages in `index.tsx`; use `components/` for presentation, `api/hooks.ts` for server state, and `lib/` for pure domain helpers. Separate list and detail features consistently (`messages`/`message-detail`, `policies`/`policy-detail`).
+- Keep page selection and form state local; pass data, pending flags, and actions into child components. Use shared `PageHeader`, `PageSection`, `BackLink`, and `PageState` from `components/common/Page.tsx` for common presentation.
+- Prefer feature-local `api/hooks.ts` for new requests, following `apps/monitor/src/app/features/policies/api/hooks.ts`; shared tracking hook signatures remain in `apps/monitor/src/app/hooks/api/tracking-messages.ts`.
+- Give queries stable keys, guard dependent queries with `enabled`, and invalidate affected queries after mutations. Reuse domain mutation hooks across list pages and chat previews so all callers refresh the same cache.
+- Keep the application shell in `components/layout/`; labels, page titles, and active-route matching are shared through `lib/navigation.ts`.
 - Put HTTP requests and response validation in the shared `apiClient`; preserve `ApiError` handling and Zod parsing (`apps/monitor/src/app/lib/api-client.ts`).
 - Test query hooks with a fresh QueryClient, retries disabled, mocked apiClient, and `renderHook`/`waitFor`; see `apps/monitor/src/app/hooks/api/__tests__/tracking-messages.test.tsx`.
 - Preserve backend URI versioning and DTO validation: unknown fields are rejected; see `apps/backend/src/main.ts`.
@@ -43,13 +45,14 @@
 - Do not add dependencies or state libraries unless requested; use the stack in `package.json`.
 - Do not change public hook signatures unless the task requires it; preserve callers and hook tests.
 - Do not run repo-wide formatters or autofix; format only touched files using `.prettierrc`.
-- Do not rewrite unrelated components when changing a feature; keep the boundaries shown in `apps/monitor/src/app/features/e2e-tests/index.tsx`.
-- Do not present E2E demo runs as real broker integration results; see `README.md` and `apps/monitor/src/app/features/e2e-tests/index.tsx`.
+- Do not rewrite unrelated components when changing a feature; keep feature-specific logic local and share only components with concrete reuse.
+- Do not present mocked browser tests as real broker integration results; see `README.md` and `apps/monitor-e2e/src/`.
 
 ## File map
 No root `src/`; source folders are scoped to workspace projects.
 - `graphify-out/` — Local code intelligence graph storage (`graph.json`).
 - `apps/monitor/src/app/components/` — Shared UI primitives, layout, and table components.
+- `apps/monitor/src/app/components/layout/` — Application sidebar, navigation, and site header.
 - `apps/monitor/src/app/features/` — Feature pages with local components and API hooks.
 - `apps/monitor/src/app/hooks/` — Shared UI hooks and tracking message queries.
 - `apps/monitor/src/app/lib/` — API client, schemas, configuration, and formatting helpers.

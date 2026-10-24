@@ -1,11 +1,8 @@
 import type { ReactNode } from 'react';
+import { Page } from './Page';
 
 export function DetailPage({ children }: { children: ReactNode }) {
-  return (
-    <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 p-4 text-sm md:p-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h2]:text-base [&_h2]:font-semibold [&_h3]:text-sm">
-      {children}
-    </div>
-  );
+  return <Page contained>{children}</Page>;
 }
 
 export function DetailStat({

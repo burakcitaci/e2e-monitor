@@ -1,8 +1,12 @@
 import { Link, useNavigate } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Policy, PolicyEvaluation } from '../../lib/schemas';
-import { Badge } from '../../components/ui/badge';
-import { DataTable, DataTableColumnHeader } from '../../components/data-table';
+import type { Policy, PolicyEvaluation } from '../../../lib/schemas';
+import { Badge } from '../../../components/ui/badge';
+import {
+  DataTable,
+  DataTableColumnHeader,
+} from '../../../components/data-table';
+import { PageSection } from '../../../components/common/Page';
 
 type EvidenceMessage = PolicyEvaluation['messages'][number];
 const detailPath = (message: EvidenceMessage) =>
@@ -88,16 +92,17 @@ export function PolicyEvidence({
 }) {
   const navigate = useNavigate();
   return (
-    <section className="min-w-0 space-y-4 rounded-xl border bg-card p-5">
-      <div>
-        <h2 className="font-semibold">Evidence for {policy.name}</h2>
-        <p className="text-sm text-muted-foreground">
+    <PageSection
+      title={`Evidence for ${policy.name}`}
+      description={
+        <>
           {policy.sourceService} → {policy.destinationService} through{' '}
           {policy.destination}/subscriptions/{policy.subscription}. Messages
           become missing after {policy.thresholdSeconds}s without a receive
           report.
-        </p>
-      </div>
+        </>
+      }
+    >
       <DataTable
         columns={columns}
         data={evaluation.messages}
@@ -105,6 +110,6 @@ export function PolicyEvidence({
         searchPlaceholder="Search messages..."
         onRowClick={(message) => navigate(detailPath(message))}
       />
-    </section>
+    </PageSection>
   );
 }

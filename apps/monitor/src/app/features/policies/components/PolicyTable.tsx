@@ -1,8 +1,11 @@
 import React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { DataTable, DataTableColumnHeader } from '../../components/data-table';
-import { Badge } from '../../components/ui/badge';
-import type { Policy } from '../../lib/schemas';
+import {
+  DataTable,
+  DataTableColumnHeader,
+} from '../../../components/data-table';
+import { PolicyStatusBadge } from './PolicyStatusBadge';
+import type { Policy } from '../../../lib/schemas';
 
 export function PolicyTable({
   policies,
@@ -71,27 +74,10 @@ export function PolicyTable({
         header: 'Status',
         cell: ({ row }) => {
           const result = row.original.latestEvaluation;
-          if (!result) return <Badge variant="outline">Waiting for data</Badge>;
-          const labels = {
-            pass: 'Pass',
-            fail: 'Fail',
-            no_data: 'No data',
-            insufficient_data: 'Insufficient data',
-            disabled: 'Disabled',
-          };
+          if (!result) return <PolicyStatusBadge />;
           return (
             <div className="space-y-1">
-              <Badge
-                variant={
-                  result.status === 'pass'
-                    ? 'default'
-                    : result.status === 'fail'
-                      ? 'destructive'
-                      : 'outline'
-                }
-              >
-                {labels[result.status]}
-              </Badge>
+              <PolicyStatusBadge status={result.status} />
               <p className="whitespace-nowrap text-xs text-muted-foreground">
                 {result.counts.passed} passed · {result.counts.late} late ·{' '}
                 {result.counts.missing} missing · {result.counts.pending}{' '}

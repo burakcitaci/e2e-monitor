@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import type { PolicyDraft } from '@e2e-monitor/entities';
 import { Button } from '../../../components/ui/button';
-import { apiClient } from '../../../lib/api-client';
+import { useCreatePolicy } from '../../policies/api/hooks';
 
 export function PolicyPreview({
   draft,
@@ -12,23 +11,12 @@ export function PolicyPreview({
   pending: boolean;
   onDismiss: () => void;
 }) {
-  const [saving, setSaving] = useState(false);
-  const [created, setCreated] = useState(false);
-  const [error, setError] = useState<string>();
-  const create = async () => {
-    setSaving(true);
-    setError(undefined);
-    try {
-      await apiClient.createPolicy({ ...draft, enabled: true });
-      setCreated(true);
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Policy could not be created.',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  const {
+    mutate: create,
+    isPending: saving,
+    isSuccess: created,
+    error,
+  } = useCreatePolicy();
   return (
     <section
       aria-labelledby="policy-review-title"
@@ -60,7 +48,10 @@ export function PolicyPreview({
         </p>
       ) : (
         <div className="flex gap-2">
-          <Button disabled={pending || saving} onClick={() => void create()}>
+          <Button
+            disabled={pending || saving}
+            onClick={() => create({ ...draft, enabled: true })}
+          >
             {saving ? 'Creating…' : 'Create policy'}
           </Button>
           <Button
@@ -74,7 +65,7 @@ export function PolicyPreview({
       )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {error.message}
         </p>
       )}
     </section>

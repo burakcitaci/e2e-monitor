@@ -1,49 +1,46 @@
 import { useState } from 'react';
 import { DataTable } from '../../components/data-table';
 import { DetailSheet } from './components/DetailSheet';
-import { MessagingResource, Provider, ResourceType } from './lib/entities';
+import type { MessagingResource } from './lib/entities';
 import { createColumns } from './components/Columns';
 import {
   useCreateMessageResource,
   useGetMessageResources,
   useUpdateMessageResource,
-} from './api/messaging-resource';
-import { serviceBusConfig } from './lib/utils';
+} from './api/hooks';
+import {
+  configuredResources,
+  emptyResourceForm,
+  resourceForm,
+} from './lib/resource-form';
 import { toast } from 'sonner';
+import { Page, PageHeader, PageState } from '../../components/common/Page';
 
 export default function MessagingResources() {
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [currentResource, setCurrentResource] =
     useState<MessagingResource | null>(null);
-  const { data: messageResources } = useGetMessageResources();
+  const {
+    data: messageResources,
+    isLoading,
+    error,
+    refetch,
+  } = useGetMessageResources();
 
   const { mutateAsync: createMessageResource, isPending: creating } =
     useCreateMessageResource();
   const { mutateAsync: updateMessageResource, isPending: updating } =
     useUpdateMessageResource();
-  const [form, setForm] = useState<Omit<MessagingResource, 'id'>>({
-    name: '',
-    provider: Provider.AWS,
-    type: ResourceType.QUEUE,
-    status: 'active',
-  });
+  const [form, setForm] = useState(emptyResourceForm);
 
   const resetForm = () => {
-    setForm({
-      name: '',
-      provider: Provider.AWS,
-      type: ResourceType.QUEUE,
-      status: 'active',
-    });
-    setEditing(false);
+    setForm(emptyResourceForm);
     setCurrentResource(null);
   };
 
   const handleSave = async () => {
     try {
-      if (editing) {
-        if (!currentResource) return;
+      if (currentResource) {
         await updateMessageResource({
           id: currentResource.id,
           ...form,
@@ -61,14 +58,8 @@ export default function MessagingResources() {
   };
 
   const handleEdit = (resource: MessagingResource) => {
-    setEditing(true);
     setCurrentResource(resource);
-    setForm({
-      name: resource.name,
-      provider: resource.provider,
-      type: resource.type,
-      status: resource.status,
-    });
+    setForm(resourceForm(resource));
     setOpen(true);
   };
 
@@ -80,32 +71,24 @@ export default function MessagingResources() {
     console.log(id);
   };
 
-  const allMessageResources: MessagingResource[] = [
+  const allMessageResources = [
     ...(messageResources ?? []),
-    ...serviceBusConfig.Topics.map((topic) => ({
-      id: `azure-topic-${topic.Name}`,
-      name: topic.Name,
-      provider: Provider.AZURE,
-      type: ResourceType.TOPIC,
-      status: 'active' as const,
-    })),
-    ...serviceBusConfig.Queues.map((queue) => ({
-      id: `azure-queue-${queue.Name}`,
-      name: queue.Name,
-      provider: Provider.AZURE,
-      type: ResourceType.QUEUE,
-      status: 'active' as const,
-    })),
+    ...configuredResources,
   ];
   return (
-    <div className="p-6 min-w-0">
-      <div className="flex flex-col gap-1 mb-4">
-        <h1 className="text-2xl font-bold">Queues and Topics</h1>
-        <h2 className="text-sm text-muted-foreground">
-          Manage saved destination metadata. This does not create or modify
-          broker resources.
-        </h2>
-      </div>
+    <Page>
+      <PageHeader
+        title="Queues and Topics"
+        description="Manage saved destination metadata. This does not create or modify broker resources."
+      />
+      {isLoading && <PageState title="Loading resources…" />}
+      {error && (
+        <PageState
+          title="Could not load resources"
+          description={error.message}
+          retry={() => void refetch()}
+        />
+      )}
 
       <DataTable
         searchKey="name"
@@ -113,8 +96,6 @@ export default function MessagingResources() {
         columns={createColumns(handleActivate, handleEdit, handleDelete)}
         data={allMessageResources ?? []}
         onAdd={() => {
-          setCurrentResource(null);
-          setEditing(false);
           resetForm();
           setOpen(true);
         }}
@@ -122,12 +103,12 @@ export default function MessagingResources() {
       <DetailSheet
         open={open}
         setOpen={setOpen}
-        editing={editing}
+        editing={currentResource !== null}
         form={form}
         saving={creating || updating}
         setForm={setForm}
         handleSave={handleSave}
       />
-    </div>
+    </Page>
   );
 }

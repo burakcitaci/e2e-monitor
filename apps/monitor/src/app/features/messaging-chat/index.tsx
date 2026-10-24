@@ -6,6 +6,7 @@ import { ChatTranscript } from './components/ChatTranscript';
 import { MessagePreview } from './components/MessagePreview';
 import { ChatHistory } from './components/ChatHistory';
 import { PolicyPreview } from './components/PolicyPreview';
+import { PageHeader } from '../../components/common/Page';
 
 export default function MessagingChatPage() {
   const chat = useConversation();
@@ -20,17 +21,19 @@ export function MessagingChatContent({
   const status = useChatStatus();
   return (
     <section className="mx-auto w-full max-w-4xl space-y-5 p-4">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Messaging Chat</h1>
-          <p className="text-muted-foreground">
-            Ask messaging questions or prepare message and policy drafts.
-          </p>
-        </div>
-        <Button variant="outline" disabled={chat.pending} onClick={chat.reset}>
-          New chat
-        </Button>
-      </header>
+      <PageHeader
+        title="Messaging Chat"
+        description="Ask messaging questions or prepare message and policy drafts."
+        actions={
+          <Button
+            variant="outline"
+            disabled={chat.pending}
+            onClick={chat.reset}
+          >
+            New chat
+          </Button>
+        }
+      />
       <ChatHistory
         selectedId={chat.selectedId}
         disabled={chat.pending}

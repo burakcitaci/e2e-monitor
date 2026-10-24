@@ -1,20 +1,22 @@
 import React from 'react';
 import { useTrackingMessages } from '../../hooks/api';
-import { AlertCircle } from 'lucide-react';
 import { LoadingSpinner } from '../../components/ui/loading-spinner';
 import { MessagesTable } from './components/MessagesTable';
-import { ErrorMessage } from './components/ErrorMessage';
 import { StatisticsCards } from './components/StatisticsCards';
 import { TrackingMessage } from '@e2e-monitor/entities';
+import { Page, PageHeader, PageState } from '../../components/common/Page';
 
 export const MessagesPage = () => {
-  const { data: messages = [], isLoading, error } = useTrackingMessages();
+  const {
+    data: messages = [],
+    isLoading,
+    error,
+    refetch,
+  } = useTrackingMessages();
 
-  // Calculate statistics by disposition and emulator
   const stats = React.useMemo(() => {
     const total = messages.length;
 
-    // Emulator statistics
     const sqs = messages.filter((m) => m.emulatorType === 'sqs').length;
     const azureServiceBus = messages.filter(
       (m) => m.emulatorType === 'azure-service-bus',
@@ -31,33 +33,25 @@ export const MessagesPage = () => {
   }
 
   return (
-    <div className="p-6 min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold">Tracking Messages</h1>
-          <h2 className="text-sm text-muted-foreground">
-            Follow messages reported by publishers and subscribers.
-          </h2>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Tracking Messages"
+        description="Follow messages reported by publishers and subscribers."
+      />
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
-        {/* Error Messages */}
         {error && (
-          <ErrorMessage
-            icon={
-              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-            }
+          <PageState
             title="Failed to Load Tracking Messages"
-            message={
+            description={
               (error as Error)?.message?.includes('Failed to fetch')
                 ? 'Backend server is not running on port 3000. Please ensure it is running.'
                 : (error as Error)?.message ||
                   'Failed to load tracking messages'
             }
+            retry={() => void refetch()}
           />
         )}
 
-        {/* Statistics Cards */}
         <StatisticsCards stats={stats} />
 
         <p className="text-sm text-muted-foreground">
@@ -67,11 +61,10 @@ export const MessagesPage = () => {
           publishing and consumption.
         </p>
 
-        {/* Table */}
         <div className="w-full min-w-0 flex-1 min-h-0">
           <MessagesTable messages={messages as TrackingMessage[]} />
         </div>
       </div>
-    </div>
+    </Page>
   );
 };

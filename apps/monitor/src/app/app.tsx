@@ -1,11 +1,10 @@
 import React from 'react';
 import { SidebarInset, SidebarProvider } from './components/ui/sidebar';
-import { Routes, Route, Navigate, useLocation } from 'react-router';
-import { AppSidebar } from './components/containers/ContainerSidebar';
-import { SiteHeader } from './components/common/SiteHeader';
+import { Routes, Route, Navigate } from 'react-router';
+import { AppSidebar } from './components/layout/AppSidebar';
+import { SiteHeader } from './components/layout/SiteHeader';
 import { useSidebarState } from './hooks/useSidebarState';
-import { Button } from './components/ui/button';
-import { MessageCircle } from 'lucide-react';
+import { ChatFloatingAction } from './features/messaging-chat/components/ChatFloatingAction';
 const MessagingResources = React.lazy(
   () => import('./features/messaging-resources'),
 );
@@ -17,54 +16,10 @@ const MessagesPage = React.lazy(() =>
   })),
 );
 const PoliciesPage = React.lazy(() => import('./features/policies'));
-const PolicyDetailPage = React.lazy(
-  () => import('./features/policies/PolicyDetail'),
-);
-const MessagingChatSheet = React.lazy(
-  () => import('./features/messaging-chat/components/MessagingChatSheet'),
-);
-
-function ChatFloatingAction() {
-  const { pathname } = useLocation();
-  const [open, setOpen] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
-  const launcher = React.useRef<HTMLButtonElement>(null);
-  if (pathname === '/chat') return null;
-  return (
-    <>
-      <Button
-        ref={launcher}
-        size="icon"
-        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg"
-        aria-label="Open Messaging Chat"
-        title="Messaging Chat"
-        onClick={() => {
-          setLoaded(true);
-          setOpen(true);
-        }}
-      >
-        <MessageCircle className="!size-6" />
-      </Button>
-      {loaded && (
-        <React.Suspense fallback={null}>
-          <MessagingChatSheet
-            open={open}
-            onOpenChange={setOpen}
-            onReturnFocus={() => launcher.current?.focus()}
-          />
-        </React.Suspense>
-      )}
-    </>
-  );
-}
+const PolicyDetailPage = React.lazy(() => import('./features/policy-detail'));
 
 export function App() {
   const { isOpen } = useSidebarState();
-
-  const NAV_ITEMS = [
-    { title: 'Messages', url: '/' },
-    { title: 'Resources', url: '/messaging-resources' },
-  ];
 
   return (
     <SidebarProvider
@@ -77,7 +32,7 @@ export function App() {
     >
       <AppSidebar />
       <SidebarInset>
-        <SiteHeader items={NAV_ITEMS} />
+        <SiteHeader />
         <div className="flex flex-1 flex-col min-w-0">
           <Routes>
             <Route path="/" element={<MessagesPage />} />

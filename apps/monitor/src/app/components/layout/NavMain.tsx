@@ -1,5 +1,6 @@
-import { type Icon } from "@tabler/icons-react"
-import { useNavigate, useLocation } from "react-router"
+import { type Icon } from '@tabler/icons-react';
+import { useNavigate, useLocation } from 'react-router';
+import { isNavigationActive } from '../../lib/navigation';
 
 import {
   SidebarGroup,
@@ -7,19 +8,19 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "../ui/sidebar"
+} from '../ui/sidebar';
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: Icon
-  }[]
+    title: string;
+    url: string;
+    icon?: Icon;
+  }[];
 }) {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   return (
     <SidebarGroup>
@@ -30,8 +31,12 @@ export function NavMain({
               <SidebarMenuButton
                 tooltip={item.title}
                 onClick={() => navigate(item.url)}
-                isActive={pathname !== item.url}
-                className={pathname === item.url ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground duration-200 ease-linear" : ""}
+                isActive={isNavigationActive(pathname, item.url)}
+                className={
+                  isNavigationActive(pathname, item.url)
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground duration-200 ease-linear'
+                    : ''
+                }
               >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
@@ -41,5 +46,5 @@ export function NavMain({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

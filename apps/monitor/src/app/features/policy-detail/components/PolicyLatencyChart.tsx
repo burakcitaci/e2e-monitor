@@ -8,10 +8,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { PolicyEvaluation } from '../../lib/schemas';
+import type { PolicyEvaluation } from '../../../lib/schemas';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../../components/ui/button';
 
 type ChartMessage = PolicyEvaluation['messages'][number] & {
   timestamp: number;

@@ -1,37 +1,29 @@
 import React from 'react';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '../../components/ui/sheet';
+} from '../../../components/ui/sheet';
 
-export type PolicyForm = {
-  name: string;
-  namespace: string;
-  sourceService: string;
-  destinationService: string;
-  destination: string;
-  subscription: string;
-  thresholdSeconds: string;
-  requiredSuccessPercentage: string;
-  evaluationWindowMinutes: string;
-  minimumSampleCount: string;
-};
+import type { PolicyForm } from '../lib/policy-form';
 export function CreatePolicySheet({
   open,
   onOpenChange,
   form,
   setForm,
   onSubmit,
+  pending,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   form: PolicyForm;
   setForm: React.Dispatch<React.SetStateAction<PolicyForm>>;
   onSubmit: (event: React.FormEvent) => void;
+  pending: boolean;
 }) {
   const textFields = [
     ['name', 'Policy name'],
@@ -61,7 +53,7 @@ export function CreatePolicySheet({
           {textFields.map(([field, label]) => (
             <label key={field} className="block text-sm font-medium">
               {label}
-              <input
+              <Input
                 required
                 value={form[field]}
                 onChange={(e) => setForm({ ...form, [field]: e.target.value })}
@@ -72,20 +64,20 @@ export function CreatePolicySheet({
           {numberFields.map(([field, label, min]) => (
             <label key={field} className="block text-sm font-medium">
               {label}
-              <input
+              <Input
                 required
                 type="number"
                 min={min}
                 max={field === 'requiredSuccessPercentage' ? '100' : undefined}
-                step={field === 'thresholdSeconds' ? '0.1' : '1'}
+                step={field === 'thresholdSeconds' ? 'any' : '1'}
                 value={form[field]}
                 onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                 className="mt-1 w-full rounded border px-3 py-2 font-normal"
               />
             </label>
           ))}
-          <Button type="submit" className="w-full">
-            Create policy
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? 'Creating…' : 'Create policy'}
           </Button>
         </form>
       </SheetContent>
