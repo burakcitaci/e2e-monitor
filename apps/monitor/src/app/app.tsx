@@ -26,7 +26,7 @@ export function App() {
       defaultOpen={isOpen}
       style={
         {
-          '--sidebar-width': 'calc(var(--spacing) * 72)',
+          '--sidebar-width': 'calc(var(--spacing) * 36)',
         } as React.CSSProperties
       }
     >

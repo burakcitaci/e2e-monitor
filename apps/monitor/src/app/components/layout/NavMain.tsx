@@ -32,11 +32,7 @@ export function NavMain({
                 tooltip={item.title}
                 onClick={() => navigate(item.url)}
                 isActive={isNavigationActive(pathname, item.url)}
-                className={
-                  isNavigationActive(pathname, item.url)
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground duration-200 ease-linear'
-                    : ''
-                }
+                className="cursor-pointer data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90 data-[active=true]:hover:text-primary-foreground"
               >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
