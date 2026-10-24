@@ -33,25 +33,26 @@ test('time range reloads the policy chart and evidence from the same analysis', 
       to: '2026-10-24T12:00:00Z',
       status: 'pass',
       counts: {
-        total: 1,
-        eligible: 1,
+        total: 30,
+        eligible: 30,
         pending: 0,
-        passed: 1,
+        passed: 30,
         late: 0,
         missing: 0,
       },
       successPercentage: 100,
       p95Seconds: 0.5,
-      messages: [
-        {
-          messageId: `range-${minutes}`,
-          detailId: 'message',
-          sentAt: '2026-10-24T11:59:00Z',
-          receivedAt: '2026-10-24T11:59:00.500Z',
-          latencySeconds: 0.5,
-          outcome: 'passed',
-        },
-      ],
+      messages: Array.from({ length: 30 }, (_, index) => ({
+        messageId:
+          index === 0 ? `range-${minutes}` : `range-${minutes}-${index}`,
+        detailId: index === 0 ? 'message' : `message-${index}`,
+        sentAt: new Date(
+          Date.parse('2026-10-24T11:59:00Z') + index * 200,
+        ).toISOString(),
+        receivedAt: '2026-10-24T11:59:00.500Z',
+        latencySeconds: 0.5,
+        outcome: 'passed',
+      })),
     };
     await route.fulfill({
       json: {
@@ -64,6 +65,29 @@ test('time range reloads the policy chart and evidence from the same analysis', 
   await expect(
     page.getByRole('link', { name: 'range-30', exact: true }),
   ).toBeVisible();
+  const chart = page.getByRole('region', {
+    name: 'Message delivery latency line chart compared with policy threshold',
+  });
+  await expect(chart.getByRole('link')).toHaveCount(30);
+  const positions = await chart
+    .locator('a circle')
+    .evaluateAll((markers) =>
+      markers.map((marker) => Number(marker.getAttribute('cx'))),
+    );
+  expect(new Set(positions).size).toBe(30);
+  expect(
+    Math.min(
+      ...positions
+        .slice(1)
+        .map((position, index) => position - positions[index]),
+    ),
+  ).toBeGreaterThan(10);
+  await page.getByRole('button', { name: 'Time', exact: true }).click();
+  await expect(chart.locator('.recharts-line-curve')).toBeAttached();
+  const curve = await chart.locator('.recharts-line-curve').getAttribute('d');
+  expect((curve?.match(/L/g) ?? []).length).toBe(29);
+  await expect(chart.getByRole('link')).toHaveCount(30);
+  await page.getByRole('button', { name: 'Per message', exact: true }).click();
   await page.getByLabel('Time range', { exact: true }).selectOption('10080');
   await expect(
     page.getByRole('link', { name: 'range-10080', exact: true }),
@@ -75,8 +99,12 @@ test('time range reloads the policy chart and evidence from the same analysis', 
     page.getByRole('region', { name: 'Selected range' }),
   ).toContainText('Last 1 week');
   await expect(
-    page.getByRole('img', {
+    page.getByRole('region', {
       name: 'Message delivery latency line chart compared with policy threshold',
     }),
   ).toBeVisible();
+  await page
+    .getByRole('link', { name: 'Open message range-10080', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/messages\/message$/);
 });

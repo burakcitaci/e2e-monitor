@@ -16,7 +16,8 @@
     "typecheck": "nx run-many -t typecheck",
     "verify": "nx run-many -t lint typecheck test build",
     "compose:up": "docker compose up -d",
-    "compose:down": "docker compose down"
+    "compose:down": "docker compose down",
+    "graph:update" : "graphify update . "
   },
   "packageManager": "yarn@1.22.22",
   "engines": {
