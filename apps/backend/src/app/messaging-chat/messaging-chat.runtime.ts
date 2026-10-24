@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import type { ChatReply, ChatTurn } from '@e2e-monitor/entities';
-import { AppConfigService } from '../common/app-config.service';
+import { AppConfigService } from '../config/app-config.service';
 import { MessageResourcesService } from '../message-resources/message-resources.service';
 import { MessagingChatKnowledgeService } from './messaging-chat-knowledge.service';
 

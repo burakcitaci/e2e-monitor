@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# uv installs Graphify here; GUI Git clients may not inherit the shell PATH.
+export PATH="$HOME/.local/bin:$PATH"
+
+graphify . --code-only

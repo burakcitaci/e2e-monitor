@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "prepare": "husky",
     "nx": "nx",
     "dev": "nx run-many -t serve --projects=backend,@e2e-monitor/monitor --parallel=2",
     "dev:backend": "nx run backend:serve",
@@ -99,6 +100,7 @@
     "eslint-plugin-playwright": "^2.11.0",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
     "jest": "^30.4.2",
     "jest-environment-node": "^30.4.1",
     "jsdom": "~27.0.1",

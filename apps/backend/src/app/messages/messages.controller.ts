@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { MessageService } from './messages.service';
 import { EmulatorType, emulatorTypes } from './message.schema';
-import { AppLogger } from '../common/logger.service';
+import { AppLogger } from '../common/logging/logger.service';
 import { CaptureService } from '../capture/capture.service';
 import { isValidObjectId } from 'mongoose';
 import {

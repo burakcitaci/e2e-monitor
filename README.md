@@ -43,6 +43,27 @@ lives in `components/layout/`, with navigation labels and active-route matching
 defined in `lib/navigation.ts`. Shared table and shadcn primitives remain under
 `components/data-table/` and `components/ui/`.
 
+### Backend structure
+
+`apps/backend/src/main.ts` is the process entry point: it invokes startup and
+handles fatal errors. Application setup is separated by responsibility:
+
+- `src/bootstrap/` creates the Nest application and configures the HTTP prefix,
+  URI versioning, CORS, validation, serialization, and shutdown hooks. HTTP
+  contract tests use the same configuration as production startup.
+- `src/app/config/` validates environment variables, exposes typed settings,
+  and loads broker metadata for AI context without connecting to a broker.
+- `src/app/database/` configures the named MongoDB connection.
+- `src/app/common/http/` registers request logging, exception handling, and
+  throttling; `src/app/common/logging/` provides the shared logger.
+- Domain modules (`capture`, `messages`, `message-resources`, `policies`,
+  `messaging-chat`, and `health`) own their controllers, services, DTOs, schemas,
+  and tests. `AppModule` composes infrastructure and domain modules.
+
+The HTTP contract remains `/api/v1`: unknown DTO fields are rejected,
+configured CORS origins support credentials, and error responses retain their
+`statusCode`, `path`, `timestamp`, and `message` fields.
+
 ## Start locally
 
 ```powershell
@@ -151,7 +172,11 @@ Use Graphify once to orient a coherent task, then reuse the findings and read
 only the relevant source sections. Query again for new dependency questions,
 not before every edit. Start with exact symbols and a small output budget.
 
-The local post-commit hook updates the code graph automatically in the background.
+Husky runs `graphify . --code-only` before every commit and blocks the commit if
+indexing fails. Install Graphify with `uv tool install graphifyy`; `yarn install`
+activates the hooks through the `prepare` script. The hook performs local code
+analysis without LLM extraction tokens. Generated graph output stays ignored.
+Husky replaces the native hook path, so the old post-commit rebuild is inactive.
 Use `yarn graph:update` manually only when an uncommitted structural change must
 be indexed for the current investigation. This command performs local AST
 extraction without an AI key or LLM tokens and preserves existing documentation

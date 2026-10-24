@@ -6,7 +6,7 @@ import {
   TrackingMessage,
   TrackingMessageDocument,
 } from './message.schema';
-import { AppLogger } from '../common/logger.service';
+import { AppLogger } from '../common/logging/logger.service';
 
 type NewTrackingMessage = Pick<
   TrackingMessage,

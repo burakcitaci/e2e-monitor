@@ -7,7 +7,7 @@ import {
   jest,
 } from '@jest/globals';
 import { ConfigService } from '@nestjs/config';
-import type { AppConfigService } from '../common/app-config.service';
+import type { AppConfigService } from '../config/app-config.service';
 import type { MessageResourcesService } from '../message-resources/message-resources.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
 import { MessagingChatToolsService } from './messaging-chat-tools.service';

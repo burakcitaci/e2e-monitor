@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { MessagesController } from './messages.controller';
 import { MessageService } from './messages.service';
 import { CaptureService } from '../capture/capture.service';
-import { AppLogger } from '../common/logger.service';
+import { AppLogger } from '../common/logging/logger.service';
 
 describe('Message details', () => {
   const capturedId = 'a'.repeat(64);

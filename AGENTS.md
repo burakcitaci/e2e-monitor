@@ -5,7 +5,7 @@
 - Skip a ceremonial query when the current task has already established the relevant files and relationships. Re-query only for a new dependency question, a scope change, or evidence that the graph is stale or incomplete.
 - Start with an exact symbol and `graphify query "<symbol>" --budget 300`. Prefer `graphify path "<A>" "<B>"` for connections and `graphify explain "<symbol>"` for a focused concept. Narrow noisy queries before increasing their budget; never request a whole traversal just because output was truncated.
 - After navigation, read only relevant source sections and use targeted `rg` searches for implementation details. Avoid dumping whole files, the raw graph, reports, vocabulary lists, or saved conversations into context. Read architecture reports only for an architecture task that needs them.
-- Keep the existing automatic post-commit hook. It runs a local code-only rebuild in the background without LLM extraction tokens. Do not also rebuild after every edit or query. Run `yarn graph:update` once before a commit only when structural changes must be indexed to answer a concrete question; otherwise let the hook refresh the graph.
+- Keep the Husky pre-commit hook. It runs `graphify . --code-only` synchronously without LLM extraction tokens and blocks the commit if indexing fails. Do not also rebuild after every edit or query. Run `yarn graph:update` manually only when structural changes must be indexed to answer a concrete question; otherwise let the hook refresh the graph.
 - The installed CLI's `graphify update .` is code-only and preserves existing semantic content. It does not accept `--code-only`. Do not run semantic extraction or LLM labeling as routine maintenance.
 - When a graph query produces a reusable finding, save a concise note with symbols, source references, conclusion, and outcome (`useful`, `dead_end`, or `corrected`). Target 150 words or fewer; never save full prompts, transcripts, source dumps, or tool logs. Inspect only relevant notes or short lessons on later tasks.
 - Treat `graphify-out/` as ignored local output. Do not stage graphs, reports, memory, caches, or backups unless explicitly requested. Keep dependency and generated-output folders excluded from indexing.
@@ -26,7 +26,7 @@
 - `yarn test` — `nx run-many -t test`.
 - `yarn lint` — `nx run-many -t lint`.
 - `yarn typecheck` — `nx run-many -t typecheck`.
-- `yarn graph:update` — `graphify update .` (Local code-only index refresh; normally handled by the post-commit hook).
+- `yarn graph:update` — `graphify update .` (Manual local code-only index refresh; Husky rebuilds the graph before commits).
 
 ## Conventions
 - Register lazy feature routes in `apps/monitor/src/app/app.tsx`; page entry points live in `features/<feature>/index.tsx`.
@@ -37,7 +37,9 @@
 - Keep the application shell in `components/layout/`; labels, page titles, and active-route matching are shared through `lib/navigation.ts`.
 - Put HTTP requests and response validation in the shared `apiClient`; preserve `ApiError` handling and Zod parsing (`apps/monitor/src/app/lib/api-client.ts`).
 - Test query hooks with a fresh QueryClient, retries disabled, mocked apiClient, and `renderHook`/`waitFor`; see `apps/monitor/src/app/hooks/api/__tests__/tracking-messages.test.tsx`.
-- Preserve backend URI versioning and DTO validation: unknown fields are rejected; see `apps/backend/src/main.ts`.
+- Keep backend startup in `src/bootstrap/`, environment configuration in `src/app/config/`, and MongoDB setup in `src/app/database/`. `main.ts` handles only process startup and fatal errors; `AppModule` composes modules.
+- Shared backend request infrastructure belongs in `common/http/`; shared logging belongs in `common/logging/`. Domain modules retain their own controllers, services, DTOs, schemas, and tests.
+- Preserve backend URI versioning, serialization, CORS, and DTO validation: unknown fields are rejected. Production and HTTP contract tests use `apps/backend/src/bootstrap/configure-application.ts`.
 - Follow Nx module boundaries and React lint presets; Prettier specifies single quotes (`eslint.config.mjs`, `apps/monitor/eslint.config.mjs`, `.prettierrc`).
 
 ## Do not
@@ -58,6 +60,10 @@ No root `src/`; source folders are scoped to workspace projects.
 - `apps/monitor/src/app/lib/` — API client, schemas, configuration, and formatting helpers.
 - `apps/monitor/src/app/types/` — Shared frontend data table type definitions.
 - `apps/backend/src/app/` — NestJS domain modules, controllers, services, DTOs, and tests.
+- `apps/backend/src/bootstrap/` — Nest startup and shared HTTP configuration.
+- `apps/backend/src/app/config/` — Environment validation, typed settings, and AI broker metadata.
+- `apps/backend/src/app/database/` — Named MongoDB connection setup.
+- `apps/backend/src/app/common/http/` and `common/logging/` — Shared HTTP providers and logger.
 - `apps/monitor/src/assets/` — Static monitor assets, separate from application code.
 - `apps/backend/src/assets/` — Static backend assets, separate from application code.
 - `libs/shared/entities/src/lib/` — Shared message and E2E domain type definitions.

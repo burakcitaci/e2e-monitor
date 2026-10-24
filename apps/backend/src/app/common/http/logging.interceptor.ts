@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable, tap } from 'rxjs';
-import { AppLogger } from './logger.service';
+import { AppLogger } from '../logging/logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -29,7 +29,7 @@ export class LoggingInterceptor implements NestInterceptor {
           const duration = Date.now() - startedAt;
           this.logger.error(`${method} ${url} failed after ${duration}ms`, err);
         },
-      })
+      }),
     );
   }
 }

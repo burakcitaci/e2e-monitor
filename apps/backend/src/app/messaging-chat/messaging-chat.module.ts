@@ -7,7 +7,7 @@ import {
 import { ChatHistoryController } from './chat-history.controller';
 import { ChatHistoryService } from './chat-history.service';
 import { MessageResourcesModule } from '../message-resources/message-resources.module';
-import { CommonModule } from '../common/common.module';
+import { ConfigurationModule } from '../config/configuration.module';
 import { MessagingChatController } from './messaging-chat.controller';
 import { MessagingChatService } from './messaging-chat.service';
 import { MessagingChatRuntime } from './messaging-chat.runtime';
@@ -17,7 +17,7 @@ import { CaptureModule } from '../capture/capture.module';
 
 @Module({
   imports: [
-    CommonModule,
+    ConfigurationModule,
     MessageResourcesModule,
     CaptureModule,
     MongooseModule.forFeature(

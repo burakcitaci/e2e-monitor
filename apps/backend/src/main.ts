@@ -1,72 +1,15 @@
+import { Logger } from '@nestjs/common';
+import { bootstrap } from './bootstrap/bootstrap.js';
 
-import {
-  ClassSerializerInterceptor,
-  Logger,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
-import { NestFactory, Reflector } from '@nestjs/core';
-import { AppModule } from './app/app.module.js';
-import { AppConfigService } from './app/common/app-config.service.js';
-
-async function bootstrap() {
+void bootstrap().catch((error: unknown) => {
   const logger = new Logger('Bootstrap');
-
-  try {
-    const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log'],
-    });
-
-    const configService = app.get(AppConfigService);
-    const reflector = app.get(Reflector);
-
-    const port = configService.port;
-    const corsOrigin = configService.corsOrigin;
-
-    // Global prefix
-    app.setGlobalPrefix('api');
-
-    // CORS
-    app.enableCors({
-      origin: corsOrigin,
-      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
-    });
-
-    // API versioning
-    app.enableVersioning({
-      type: VersioningType.URI,
-      defaultVersion: '1',
-    });
-
-    // Global validation
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      })
+  if (error instanceof Error) {
+    logger.error(
+      `❌ Failed to start application: ${error.message}`,
+      error.stack,
     );
-
-    app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
-    app.enableShutdownHooks();
-
-    await app.listen(port);
-
-    logger.log(`🚀 Application started on http://localhost:${port}/api/v1`);
-    logger.log(`📊 Environment: ${configService.nodeEnv}`);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      logger.error(`❌ Failed to start application: ${error.message}`, error.stack);
-    } else {
-      logger.error('❌ Failed to start application due to an unknown error');
-    }
-    process.exit(1);
+  } else {
+    logger.error('❌ Failed to start application due to an unknown error');
   }
-}
-
-bootstrap();
+  process.exit(1);
+});
