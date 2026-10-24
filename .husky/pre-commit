@@ -4,3 +4,5 @@
 export PATH="$HOME/.local/bin:$PATH"
 
 graphify . --code-only
+
+graphify cluster-only
