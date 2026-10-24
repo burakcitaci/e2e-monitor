@@ -6,9 +6,18 @@ export function latencyBuckets(
   to: number,
 ) {
   const duration = to - from;
-  const minutes =
-    duration <= 86_400_000 ? 15 : duration <= 604_800_000 ? 60 : 360;
-  const width = minutes * 60_000;
+  const seconds =
+    duration < 86_400_000
+      ? ([10, 15, 30, 60, 120, 300, 600, 900].find(
+          (interval) => duration / (interval * 1000) <= 120,
+        ) ?? 900)
+      : duration <= 86_400_000
+        ? 900
+        : duration <= 604_800_000
+          ? 3600
+          : 21600;
+  const minutes = seconds / 60;
+  const width = seconds * 1000;
   const buckets = Array.from(
     { length: Math.ceil(duration / width) },
     (_, index) => ({
@@ -33,6 +42,12 @@ export function latencyBuckets(
       bucket.values.push(message.latencySeconds);
   }
   return {
+    label:
+      seconds < 60
+        ? `${seconds} seconds`
+        : seconds < 3600
+          ? `${minutes} minute${minutes === 1 ? '' : 's'}`
+          : `${seconds / 3600} hour${seconds === 3600 ? '' : 's'}`,
     minutes,
     points: buckets.map(({ values, ...bucket }) => {
       values.sort((a, b) => a - b);

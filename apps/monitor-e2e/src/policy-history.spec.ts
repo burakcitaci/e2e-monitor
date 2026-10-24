@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 test('time range reloads the policy chart and evidence from the same analysis', async ({
   page,
 }) => {
+  let sampleCount = 30;
   await page.route('**/api/v1/policies/history-test?*', async (route) => {
     const minutes = Number(
       new URL(route.request().url()).searchParams.get('minutes'),
@@ -33,25 +34,34 @@ test('time range reloads the policy chart and evidence from the same analysis', 
       to: '2026-10-24T12:00:00Z',
       status: 'pass',
       counts: {
-        total: 30,
-        eligible: 30,
+        total: sampleCount,
+        eligible: sampleCount,
         pending: 0,
-        passed: 30,
+        passed: sampleCount,
         late: 0,
         missing: 0,
       },
       successPercentage: 100,
       p95Seconds: 0.5,
-      messages: Array.from({ length: 30 }, (_, index) => ({
+      messages: Array.from({ length: sampleCount }, (_, index) => ({
         messageId:
           index === 0 ? `range-${minutes}` : `range-${minutes}-${index}`,
         detailId: index === 0 ? 'message' : `message-${index}`,
         sentAt: new Date(
-          Date.parse('2026-10-24T11:59:00Z') + index * 200,
+          minutes >= 1440 && index > 0
+            ? Date.parse('2026-10-24T12:00:00Z') -
+                minutes * 60_000 * (index / 31)
+            : sampleCount > 120
+              ? Date.parse('2026-10-24T12:00:00Z') - (index + 1) * 1000
+              : Date.parse('2026-10-24T11:59:00Z') + index * 200,
         ).toISOString(),
         receivedAt: '2026-10-24T11:59:00.500Z',
-        latencySeconds: 0.5,
-        outcome: 'passed',
+        latencySeconds:
+          sampleCount > 120 && Math.floor(index / 30) % 2 === 1 ? 1.5 : 0.5,
+        outcome:
+          sampleCount > 120 && Math.floor(index / 30) % 2 === 1
+            ? 'late'
+            : 'passed',
       })),
     };
     await route.fulfill({
@@ -125,7 +135,65 @@ test('time range reloads the policy chart and evidence from the same analysis', 
       ),
     ).toBe(true);
     await expect(chart.getByRole('link')).toHaveCount(0);
+    const bucketCurve = await chart
+      .locator('.recharts-line-curve')
+      .getAttribute('d');
+    expect((bucketCurve?.match(/M/g) ?? []).length).toBe(1);
+    expect((bucketCurve?.match(/[LC]/g) ?? []).length).toBeGreaterThan(1);
+    const chartScroller = chart.locator('..');
+    const widthBefore = await chartScroller.evaluate(
+      (element) => element.scrollWidth,
+    );
+    for (const marker of [
+      chart.locator('.recharts-line-dots circle').first(),
+      chart.locator('.recharts-line-dots circle').last(),
+    ]) {
+      await marker.hover();
+      await expect(chart.locator('.recharts-tooltip-wrapper')).toBeVisible();
+      expect(
+        await chartScroller.evaluate((element) => element.scrollWidth),
+      ).toBe(widthBefore);
+    }
   }
-  await page.getByRole('link', { name: 'range-43200', exact: true }).click();
+  sampleCount = 600;
+  for (const minutes of ['15', '30']) {
+    await page.getByLabel('Time range', { exact: true }).selectOption(minutes);
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await expect(chartCard.locator('dd').first()).toContainText('600');
+    await expect(chartCard).toContainText('seconds');
+    await expect(chart.locator('.recharts-line-curve')).toHaveAttribute(
+      'stroke',
+      /^url\(#latency-/,
+    );
+    await expect(chart.locator('linearGradient stop').first()).toHaveAttribute(
+      'offset',
+      '0.5',
+    );
+    expect(
+      await chart
+        .locator('.recharts-line-dots circle[fill="var(--destructive)"]')
+        .count(),
+    ).toBeGreaterThan(0);
+    expect(
+      await chart.locator('.recharts-line-dots circle').count(),
+    ).toBeLessThanOrEqual(120);
+    expect(
+      await chart.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    expect(
+      await chartCard.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await chartCard.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole('link', { name: 'range-30', exact: true }).click();
   await expect(page).toHaveURL(/\/messages\/message$/);
 });

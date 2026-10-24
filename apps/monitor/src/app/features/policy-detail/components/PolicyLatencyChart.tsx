@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import type { PolicyEvaluation } from '../../../lib/schemas';
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '../../../components/ui/button';
 import { latencyBuckets } from '../lib/latency-buckets';
 
@@ -29,10 +29,14 @@ export function PolicyLatencyChart({
   to?: string;
 }) {
   const navigate = useNavigate();
+  const gradientId = `latency-${useId().replace(/:/g, '')}`;
   const [spacing, setSpacing] = useState<'message' | 'time'>('message');
   const rangeFrom = Date.parse(from ?? '');
   const rangeTo = Date.parse(to ?? '');
-  const aggregated = rangeTo - rangeFrom >= 86_400_000;
+  const aggregated =
+    Number.isFinite(rangeFrom) &&
+    Number.isFinite(rangeTo) &&
+    (rangeTo - rangeFrom >= 86_400_000 || evaluation.messages.length > 120);
   const buckets = aggregated
     ? latencyBuckets(evaluation.messages, rangeFrom, rangeTo)
     : null;
@@ -50,6 +54,36 @@ export function PolicyLatencyChart({
     );
   const chartData: { timestamp: number; latency: number | null }[] =
     buckets?.points ?? data;
+  const { minimum, maximum } = chartData.reduce(
+    (range, point) =>
+      point.latency === null
+        ? range
+        : {
+            minimum: Math.min(range.minimum, point.latency),
+            maximum: Math.max(range.maximum, point.latency),
+          },
+    { minimum: Infinity, maximum: -Infinity },
+  );
+  const thresholdOffset =
+    maximum > minimum
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            (maximum - evaluation.thresholdSeconds) / (maximum - minimum),
+          ),
+        )
+      : 0;
+  const lineColor =
+    minimum > evaluation.thresholdSeconds
+      ? 'var(--destructive)'
+      : maximum <= evaluation.thresholdSeconds
+        ? 'var(--color-blue-300)'
+        : `url(#${gradientId})`;
+  const pointColor = (latency: number) =>
+    latency > evaluation.thresholdSeconds
+      ? 'var(--destructive)'
+      : 'var(--color-blue-300)';
   const marker = ({
     cx,
     cy,
@@ -67,7 +101,9 @@ export function PolicyLatencyChart({
     )
       return <g />;
     if (aggregated)
-      return <circle cx={cx} cy={cy} r={2} fill="var(--color-blue-300)" />;
+      return (
+        <circle cx={cx} cy={cy} r={2} fill={pointColor(payload.latency)} />
+      );
     const description = `${payload.messageId} · Sent: ${payload.sentAt} · Received: ${payload.receivedAt} · ${payload.latency.toFixed(3)}s · ${payload.outcome}`;
     return (
       <a
@@ -82,11 +118,7 @@ export function PolicyLatencyChart({
           cx={cx}
           cy={cy}
           r={spacing === 'time' ? 2 : 3}
-          fill={
-            payload.outcome === 'passed'
-              ? 'var(--color-blue-300)'
-              : 'var(--destructive)'
-          }
+          fill={pointColor(payload.latency)}
           stroke="var(--background)"
           strokeWidth={1.5}
           className="cursor-pointer"
@@ -125,7 +157,7 @@ export function PolicyLatencyChart({
           </h2>
           <p className="text-sm text-muted-foreground">
             {buckets
-              ? `p95 delivery latency per ${buckets.minutes < 60 ? `${buckets.minutes} minutes` : `${buckets.minutes / 60} hour${buckets.minutes > 60 ? 's' : ''}`}.`
+              ? `p95 delivery latency per ${buckets.label}.`
               : 'Message delivery times for the selected range.'}
           </p>
         </div>
@@ -188,14 +220,9 @@ export function PolicyLatencyChart({
           </div>
         )}
       </div>
-      <div className="overflow-x-auto px-2 pt-5 sm:px-4">
+      <div className="min-w-0 px-2 pt-5 sm:px-4">
         <div
-          className="h-60 w-full sm:h-64"
-          style={
-            plotSpacing === 'message'
-              ? { minWidth: Math.max(640, data.length * 24 + 160) }
-              : undefined
-          }
+          className="h-60 w-full overflow-hidden sm:h-64"
           role="region"
           aria-label="Message delivery latency line chart compared with policy threshold"
         >
@@ -205,6 +232,18 @@ export function PolicyLatencyChart({
               data={chartData}
               margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
             >
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset={thresholdOffset}
+                    stopColor="var(--destructive)"
+                  />
+                  <stop
+                    offset={thresholdOffset}
+                    stopColor="var(--color-blue-300)"
+                  />
+                </linearGradient>
+              </defs>
               <CartesianGrid
                 vertical={false}
                 className="stroke-border"
@@ -256,6 +295,12 @@ export function PolicyLatencyChart({
                 tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
               />
               <Tooltip
+                isAnimationActive={false}
+                allowEscapeViewBox={{ x: false, y: false }}
+                wrapperStyle={{
+                  pointerEvents: 'none',
+                  maxWidth: 'min(18rem, calc(100vw - 3rem))',
+                }}
                 cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
                 labelFormatter={(value) =>
                   new Date(
@@ -281,7 +326,10 @@ export function PolicyLatencyChart({
                   boxShadow: '0 8px 24px rgb(0 0 0 / 0.10)',
                   padding: '10px 14px',
                   fontSize: 12,
+                  whiteSpace: 'normal',
+                  overflowWrap: 'anywhere',
                 }}
+                itemStyle={{ whiteSpace: 'normal' }}
                 labelStyle={{ fontWeight: 500, marginBottom: 4 }}
               />
               <ReferenceLine
@@ -300,18 +348,30 @@ export function PolicyLatencyChart({
                 dataKey="latency"
                 name="Delivery latency"
                 type="monotoneX"
-                stroke="var(--color-blue-300)"
+                stroke={lineColor}
                 strokeWidth={2}
                 dot={marker}
-                activeDot={{
-                  r: 5,
-                  fill: 'var(--color-blue-300)',
-                  stroke: 'var(--background)',
-                  strokeWidth: 2,
-                  pointerEvents: 'none',
-                }}
+                activeDot={({
+                  cx,
+                  cy,
+                  payload,
+                }: {
+                  cx?: number;
+                  cy?: number;
+                  payload?: ChartMessage;
+                }) => (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={5}
+                    fill={pointColor(payload?.latency ?? 0)}
+                    stroke="var(--background)"
+                    strokeWidth={2}
+                    pointerEvents="none"
+                  />
+                )}
                 isAnimationActive={false}
-                connectNulls={!aggregated}
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>
@@ -319,7 +379,7 @@ export function PolicyLatencyChart({
       </div>
       <p className="border-t px-6 py-4 text-xs leading-relaxed text-muted-foreground">
         {aggregated ? (
-          'Each point shows the p95 latency of received messages sent in that time bucket. Empty buckets remain gaps. Missing and pending messages have no latency; all individual messages remain in the evidence table. Hover for received/total counts and maximum latency.'
+          'Each point shows the p95 latency of received messages sent in that time bucket. The line connects populated buckets across empty intervals; empty buckets are not zero latency. Missing and pending messages have no latency; all individual messages remain in the evidence table. Hover for received/total counts and maximum latency.'
         ) : (
           <>
             The line connects {received} received message
@@ -327,7 +387,7 @@ export function PolicyLatencyChart({
             messages have no latency value and remain in the evidence table.
             Click a marker to inspect its message.{' '}
             {spacing === 'message'
-              ? 'Messages are evenly spaced in send order; scroll horizontally to inspect each one. Time gaps are not to scale.'
+              ? 'Messages are evenly spaced in send order. Time gaps are not to scale. Dense ranges automatically use p95 time buckets.'
               : 'Positions follow actual sent timestamps, so bursts can overlap.'}{' '}
             Tooltips show original timestamps.
           </>

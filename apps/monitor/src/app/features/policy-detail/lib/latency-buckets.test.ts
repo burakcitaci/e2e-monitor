@@ -4,6 +4,20 @@ import { latencyBuckets } from './latency-buckets';
 
 describe('latencyBuckets', () => {
   const from = Date.parse('2026-10-24T00:00:00Z');
+  it('keeps dense 15- and 30-minute ranges within 120 time buckets', () => {
+    const messages = Array.from({ length: 600 }, (_, index) => ({
+      sentAt: new Date(from + index * 1000).toISOString(),
+      latencySeconds: index % 10,
+    })) as PolicyEvaluation['messages'];
+    for (const minutes of [15, 30]) {
+      const result = latencyBuckets(messages, from, from + minutes * 60_000);
+      expect(result.points.length).toBeLessThanOrEqual(120);
+      expect(result.points.reduce((sum, point) => sum + point.total, 0)).toBe(
+        600,
+      );
+      expect(result.label).toContain('seconds');
+    }
+  });
   it('preserves empty buckets and computes nearest-rank p95 without hiding missing messages', () => {
     const messages = Array.from({ length: 21 }, (_, index) => ({
       sentAt: new Date(from + 1000).toISOString(),
