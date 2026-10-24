@@ -13,9 +13,13 @@ export function SiteHeader({ items }: { items: NavItem[] }) {
   );
   const title = pathname.startsWith('/messages/')
     ? 'Message details'
-    : pathname === '/chat'
-      ? 'Messaging Chat'
-      : (current?.title ?? 'Dashboard');
+    : pathname.startsWith('/policies/')
+      ? 'Policy details'
+      : pathname === '/policies'
+        ? 'Policies'
+        : pathname === '/chat'
+          ? 'Messaging Chat'
+          : (current?.title ?? 'Messages');
   return (
     <header className="relative flex h-(--header-height) shrink-0 items-center border-b">
       <div className="flex w-full items-center px-4 lg:px-6">

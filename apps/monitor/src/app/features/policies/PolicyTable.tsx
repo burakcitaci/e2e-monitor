@@ -2,18 +2,16 @@ import React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable, DataTableColumnHeader } from '../../components/data-table';
 import { Badge } from '../../components/ui/badge';
-import type { Policy, PolicyEvaluation } from '../../lib/schemas';
-
-export type PolicyRow = Policy & { result?: PolicyEvaluation };
+import type { Policy } from '../../lib/schemas';
 
 export function PolicyTable({
   policies,
-  onEvaluate,
+  onOpen,
 }: {
-  policies: PolicyRow[];
-  onEvaluate: (id: string) => void;
+  policies: Policy[];
+  onOpen: (id: string) => void;
 }) {
-  const columns = React.useMemo<ColumnDef<PolicyRow>[]>(
+  const columns = React.useMemo<ColumnDef<Policy>[]>(
     () => [
       {
         accessorKey: 'name',
@@ -72,8 +70,8 @@ export function PolicyTable({
         id: 'status',
         header: 'Status',
         cell: ({ row }) => {
-          const result = row.original.result;
-          if (!result) return <Badge variant="outline">Not evaluated</Badge>;
+          const result = row.original.latestEvaluation;
+          if (!result) return <Badge variant="outline">Waiting for data</Badge>;
           const labels = {
             pass: 'Pass',
             fail: 'Fail',
@@ -103,20 +101,8 @@ export function PolicyTable({
           );
         },
       },
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <button
-            className="rounded border px-3 py-1 text-xs"
-            onClick={() => onEvaluate(row.original._id)}
-          >
-            Evaluate
-          </button>
-        ),
-      },
     ],
-    [onEvaluate],
+    [],
   );
   return (
     <DataTable
@@ -124,6 +110,7 @@ export function PolicyTable({
       data={policies}
       searchKey="name"
       searchPlaceholder="Search policies..."
+      onRowClick={(policy) => onOpen(policy._id)}
     />
   );
 }

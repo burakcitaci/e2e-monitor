@@ -26,6 +26,7 @@ import {
   policiesResponseSchema,
   policyResponseSchema,
   policyEvaluationSchema,
+  policyDetailSchema,
   Policy,
 } from './schemas';
 
@@ -80,6 +81,15 @@ class ApiClient {
       policyResponseSchema,
     );
     return (response as ApiResponse<Policy>).data;
+  }
+
+  async getPolicy(id: string) {
+    const response = await this.request(
+      `/policies/${encodeURIComponent(id)}`,
+      undefined,
+      apiResponseSchema(policyDetailSchema),
+    );
+    return (response as ApiResponse<z.infer<typeof policyDetailSchema>>).data;
   }
 
   async evaluatePolicy(id: string) {

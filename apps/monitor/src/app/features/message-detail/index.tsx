@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { MessageActions } from '../messages/components/MessageActions';
 import { analyzeMessage, formatDuration } from './analysis';
+import { DetailPage, DetailStat } from '../../components/common/DetailPage';
 
 const timestamp = (value: Date | undefined | null) =>
   value ? value.toLocaleString() : 'Not reported';
@@ -46,14 +47,14 @@ export default function MessageDetailPage() {
   );
   if (isLoading)
     return (
-      <div className="p-6 space-y-6">
+      <DetailPage>
         {back}
         <p role="status">Loading message details…</p>
-      </div>
+      </DetailPage>
     );
   if (!message)
     return (
-      <div className="p-6 space-y-6">
+      <DetailPage>
         {back}
         <div role="alert" className="rounded-xl border p-6 space-y-3">
           <h1 className="text-xl font-semibold">
@@ -70,7 +71,7 @@ export default function MessageDetailPage() {
             Retry
           </Button>
         </div>
-      </div>
+      </DetailPage>
     );
 
   const analysis = analyzeMessage(message);
@@ -150,7 +151,7 @@ export default function MessageDetailPage() {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 min-w-0 max-w-7xl w-full mx-auto">
+    <DetailPage>
       {back}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
@@ -181,17 +182,12 @@ export default function MessageDetailPage() {
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statistics.map((stat) => (
-          <section
+          <DetailStat
             key={stat.label}
-            aria-label={stat.label}
-            className="rounded-xl border bg-card p-5"
-          >
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums">
-              {stat.value}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">{stat.note}</p>
-          </section>
+            label={stat.label}
+            value={stat.value}
+            note={stat.note}
+          />
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
@@ -320,6 +316,6 @@ export default function MessageDetailPage() {
           </ol>
         )}
       </section>
-    </div>
+    </DetailPage>
   );
 }

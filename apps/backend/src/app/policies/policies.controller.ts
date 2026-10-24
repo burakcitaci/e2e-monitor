@@ -28,6 +28,9 @@ export class PoliciesController {
   @Delete(':id') async remove(@Param('id') id: string) {
     return { success: true, data: await this.service.remove(id) };
   }
+  @Get(':id') async detail(@Param('id') id: string) {
+    return { success: true, data: await this.service.detail(id) };
+  }
   @Get(':id/evaluate') async evaluate(@Param('id') id: string) {
     return { success: true, data: await this.service.evaluate(id) };
   }

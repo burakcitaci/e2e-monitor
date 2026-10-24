@@ -1,5 +1,10 @@
 # Agent guide
 
+## Graphify (Code Intelligence)
+- **Always query the Graphify knowledge graph first** using the `$graphify` tool or `graphify query` before opening, searching, or reading raw source files sequentially.
+- Use `graphify path` to trace structural boundaries and connections between the NestJS backend and the React monitor.
+- If you need to refresh the graph after making structural changes, run `graphify update . --code-only` to sync `graphify-out/graph.json` without consuming LLM extraction tokens.
+
 ## Stack
 - Nx + Yarn workspaces: React monitor, NestJS API, Mongoose persistence; see `package.json` and `README.md`.
 - Strict TypeScript; no path aliases in root configs. Use `.nvmrc` for Node; see `tsconfig.base.json`.
@@ -14,6 +19,7 @@
 - `yarn test` — `nx run-many -t test`.
 - `yarn lint` — `nx run-many -t lint`.
 - `yarn typecheck` — `nx run-many -t typecheck`.
+- `yarn graph:update` — `graphify update . --code-only` (Updates the code intelligence index).
 
 ## Conventions
 - Register lazy feature routes in `apps/monitor/src/app/app.tsx`; page entry points live in `features/<feature>/index.tsx`.
@@ -26,6 +32,7 @@
 - Follow Nx module boundaries and React lint presets; Prettier specifies single quotes (`eslint.config.mjs`, `apps/monitor/eslint.config.mjs`, `.prettierrc`).
 
 ## Do not
+- **Do not bypass Graphify** by running full-repository `grep` or heavy text-searches if the architecture can be resolved via the index.
 - Do not add dependencies or state libraries unless requested; use the stack in `package.json`.
 - Do not change public hook signatures unless the task requires it; preserve callers and hook tests.
 - Do not run repo-wide formatters or autofix; format only touched files using `.prettierrc`.
@@ -34,6 +41,7 @@
 
 ## File map
 No root `src/`; source folders are scoped to workspace projects.
+- `graphify-out/` — Local code intelligence graph storage (`graph.json`).
 - `apps/monitor/src/app/components/` — Shared UI primitives, layout, and table components.
 - `apps/monitor/src/app/features/` — Feature pages with local components and API hooks.
 - `apps/monitor/src/app/hooks/` — Shared UI hooks and tracking message queries.

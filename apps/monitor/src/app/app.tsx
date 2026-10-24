@@ -17,6 +17,9 @@ const MessagesPage = React.lazy(() =>
   })),
 );
 const PoliciesPage = React.lazy(() => import('./features/policies'));
+const PolicyDetailPage = React.lazy(
+  () => import('./features/policies/PolicyDetail'),
+);
 const MessagingChatSheet = React.lazy(
   () => import('./features/messaging-chat/components/MessagingChatSheet'),
 );
@@ -59,8 +62,8 @@ export function App() {
   const { isOpen } = useSidebarState();
 
   const NAV_ITEMS = [
-    { title: 'Messaging Monitor', url: '/' },
-    { title: 'Messaging Resources', url: '/messaging-resources' },
+    { title: 'Messages', url: '/' },
+    { title: 'Resources', url: '/messaging-resources' },
   ];
 
   return (
@@ -80,6 +83,7 @@ export function App() {
             <Route path="/" element={<MessagesPage />} />
             <Route path="/messages/:id" element={<MessageDetailPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
+            <Route path="/policies/:id" element={<PolicyDetailPage />} />
             <Route
               path="/messaging-resources"
               element={<MessagingResources />}

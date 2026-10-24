@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import {
-  IconDashboard,
+  IconListCheck,
   IconInnerShadowTop,
-  IconMessageChatbot,
+  IconShieldCheck,
   IconMessageCircle,
 } from '@tabler/icons-react';
 
@@ -28,24 +28,19 @@ const data = {
   },
   navMain: [
     {
-      title: 'Main',
+      title: 'Messages',
       url: '/',
-      icon: IconDashboard,
-    },
-    {
-      title: 'Messaging Resources',
-      url: '/messaging-resources',
       icon: IconMessageCircle,
     },
     {
-      title: 'Messaging Chat',
-      url: '/chat',
-      icon: IconMessageChatbot,
+      title: 'Resources',
+      url: '/messaging-resources',
+      icon: IconListCheck,
     },
     {
       title: 'Policies',
       url: '/policies',
-      icon: IconMessageCircle,
+      icon: IconShieldCheck,
     },
   ],
   navClouds: [],

@@ -1,14 +1,83 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { Policy, PolicyEvaluation } from '../../lib/schemas';
 import { Badge } from '../../components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/ui/table';
+import { DataTable, DataTableColumnHeader } from '../../components/data-table';
+
+type EvidenceMessage = PolicyEvaluation['messages'][number];
+const detailPath = (message: EvidenceMessage) =>
+  `/messages/${encodeURIComponent(message.detailId)}`;
+
+const columns: ColumnDef<EvidenceMessage>[] = [
+  {
+    accessorKey: 'messageId',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Message" />
+    ),
+    cell: ({ row }) => (
+      <Link
+        className="block max-w-64 truncate font-mono text-xs font-medium text-primary hover:underline"
+        to={detailPath(row.original)}
+        title={row.original.messageId}
+      >
+        {row.original.messageId}
+      </Link>
+    ),
+  },
+  {
+    accessorKey: 'outcome',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Outcome" />
+    ),
+    cell: ({ row }) => (
+      <Badge
+        variant={
+          row.original.outcome === 'passed'
+            ? 'default'
+            : row.original.outcome === 'pending'
+              ? 'outline'
+              : 'destructive'
+        }
+      >
+        {row.original.outcome}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'sentAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Sent At" />
+    ),
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {new Date(row.original.sentAt).toLocaleString()}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'receivedAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Received At" />
+    ),
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {row.original.receivedAt
+          ? new Date(row.original.receivedAt).toLocaleString()
+          : 'Not received'}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'latencySeconds',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Latency" />
+    ),
+    cell: ({ row }) =>
+      row.original.latencySeconds === null
+        ? '—'
+        : `${row.original.latencySeconds.toFixed(3)}s`,
+  },
+];
 
 export function PolicyEvidence({
   policy,
@@ -17,8 +86,9 @@ export function PolicyEvidence({
   policy: Policy;
   evaluation: PolicyEvaluation;
 }) {
+  const navigate = useNavigate();
   return (
-    <section className="space-y-3 rounded-lg border p-4">
+    <section className="min-w-0 space-y-4 rounded-xl border bg-card p-5">
       <div>
         <h2 className="font-semibold">Evidence for {policy.name}</h2>
         <p className="text-sm text-muted-foreground">
@@ -28,62 +98,13 @@ export function PolicyEvidence({
           report.
         </p>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Message</TableHead>
-            <TableHead>Outcome</TableHead>
-            <TableHead>Sent at</TableHead>
-            <TableHead>Latency</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {evaluation.messages.length ? (
-            evaluation.messages.map((message) => (
-              <TableRow key={message.detailId}>
-                <TableCell>
-                  <Link
-                    className="font-mono text-xs text-primary hover:underline"
-                    to={`/messages/${encodeURIComponent(message.detailId)}`}
-                  >
-                    {message.messageId}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      message.outcome === 'passed'
-                        ? 'default'
-                        : message.outcome === 'pending'
-                          ? 'outline'
-                          : 'destructive'
-                    }
-                  >
-                    {message.outcome}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {new Date(message.sentAt).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-xs">
-                  {message.latencySeconds === null
-                    ? 'Not received'
-                    : `${message.latencySeconds.toFixed(3)}s`}
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className="text-center text-muted-foreground"
-              >
-                No sent messages matched this policy in its evaluation window.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        columns={columns}
+        data={evaluation.messages}
+        searchKey="messageId"
+        searchPlaceholder="Search messages..."
+        onRowClick={(message) => navigate(detailPath(message))}
+      />
     </section>
   );
 }

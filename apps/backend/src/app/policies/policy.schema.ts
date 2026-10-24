@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema({ collection: 'Policies', timestamps: true })
 export class Policy {
+  @Prop({ unique: true, sparse: true, select: false }) identity?: string;
   @Prop({ required: true, trim: true }) name!: string;
   @Prop({ required: true, trim: true }) namespace!: string;
   @Prop({ required: true, trim: true }) sourceService!: string;

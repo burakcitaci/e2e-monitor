@@ -1,17 +1,47 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CaptureService } from '../capture/capture.service';
 import { CreatePolicyDto, UpdatePolicyDto } from './policy.dto';
 import { Policy } from './policy.schema';
-import { evaluatePolicy } from './policy-evaluator';
+import { EvaluatorService } from './evaluator.service';
+
+const policyIdentity = (policy: CreatePolicyDto) =>
+  [
+    policy.namespace,
+    policy.sourceService,
+    policy.destinationService,
+    policy.destination,
+    policy.subscription,
+    policy.thresholdSeconds,
+    policy.requiredSuccessPercentage ?? 95,
+    policy.evaluationWindowMinutes ?? 30,
+    policy.minimumSampleCount ?? 1,
+  ]
+    .map((value) => String(value).trim().toLowerCase())
+    .join('|');
+
+const policyContract = (policy: CreatePolicyDto) => ({
+  namespace: policy.namespace.trim(),
+  sourceService: policy.sourceService.trim(),
+  destinationService: policy.destinationService.trim(),
+  destination: policy.destination.trim(),
+  subscription: policy.subscription.trim(),
+  thresholdSeconds: policy.thresholdSeconds,
+  requiredSuccessPercentage: policy.requiredSuccessPercentage ?? 95,
+  evaluationWindowMinutes: policy.evaluationWindowMinutes ?? 30,
+  minimumSampleCount: policy.minimumSampleCount ?? 1,
+});
 
 @Injectable()
 export class PoliciesService {
   constructor(
     @InjectModel(Policy.name, 'MessageTrackingDb')
     private readonly model: Model<Policy>,
-    private readonly capture: CaptureService,
+    private readonly evaluator: EvaluatorService,
   ) {}
 
   async list() {
@@ -20,41 +50,85 @@ export class PoliciesService {
       .sort({ createdAt: -1 })
       .lean()
       .exec();
-    return policies.map((policy) => this.serialize(policy));
+    const latest = await this.evaluator.latest(
+      policies.map((policy) => String(policy._id)),
+    );
+    return policies.map((policy) => ({
+      ...this.serialize(policy),
+      latestEvaluation: latest.get(String(policy._id)),
+    }));
   }
   async create(dto: CreatePolicyDto) {
-    const created = await this.model.create(dto);
-    return this.serialize(created.toObject());
-  }
-  async update(id: string, dto: UpdatePolicyDto) {
-    const result = await this.model
-      .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
+    const identity = policyIdentity(dto);
+    const duplicate = await this.model
+      .findOne({ $or: [{ identity }, policyContract(dto)] })
+      .select({ _id: 1 })
       .lean()
       .exec();
-    if (!result) throw new NotFoundException('Policy not found');
-    return this.serialize(result);
+    if (duplicate) {
+      throw new ConflictException('An identical policy already exists');
+    }
+    try {
+      const created = await this.model.create({ ...dto, identity });
+      const serialized = this.serialize(created.toObject());
+      await this.evaluator.evaluateOne(created.toObject());
+      return serialized;
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        throw new ConflictException('An identical policy already exists');
+      }
+      throw error;
+    }
+  }
+  async update(id: string, dto: UpdatePolicyDto) {
+    const existing = await this.model.findById(id).lean().exec();
+    if (!existing) throw new NotFoundException('Policy not found');
+    const merged = { ...existing, ...dto } as unknown as CreatePolicyDto;
+    try {
+      const result = await this.model
+        .findByIdAndUpdate(
+          id,
+          { ...dto, identity: policyIdentity(merged) },
+          { new: true, runValidators: true },
+        )
+        .lean()
+        .exec();
+      if (!result) throw new NotFoundException('Policy not found');
+      return this.serialize(result);
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        throw new ConflictException('An identical policy already exists');
+      }
+      throw error;
+    }
   }
   async remove(id: string) {
     const result = await this.model.findByIdAndDelete(id).lean().exec();
     if (!result) throw new NotFoundException('Policy not found');
+    await this.evaluator.removeHistory(id);
     return { id };
+  }
+
+  async detail(id: string) {
+    const policy = await this.model.findById(id).lean().exec();
+    if (!policy) throw new NotFoundException('Policy not found');
+    const evaluations = await this.evaluator.history(id);
+    return {
+      policy: this.serialize(policy),
+      latestEvaluation: evaluations.at(-1),
+      evaluations,
+    };
   }
 
   async evaluate(id: string) {
     const policy = await this.model.findById(id).lean().exec();
     if (!policy) throw new NotFoundException('Policy not found');
-    const captures = await this.capture.allStates();
-    const evaluatedAt = new Date();
-    return {
-      policyId: String(policy._id),
-      thresholdSeconds: policy.thresholdSeconds,
-      requiredSuccessPercentage: policy.requiredSuccessPercentage,
-      evaluatedAt: evaluatedAt.toISOString(),
-      ...evaluatePolicy(policy, captures, evaluatedAt),
-    };
+    return this.evaluator.evaluateOne(policy);
   }
 
   private serialize<T extends { _id: unknown }>(policy: T) {
-    return { ...policy, _id: String(policy._id) };
+    const serializable = { ...policy } as T & { identity?: string };
+    delete serializable.identity;
+    return { ...serializable, _id: String(policy._id) };
   }
 }

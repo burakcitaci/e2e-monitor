@@ -1,0 +1,11 @@
+# Temporäre Yarn-Installationen ignorieren
+**/.yarn-install-temp/**
+.yarn-install-temp
+
+# Standardmäßige Paket- und Build-Ordner ausschließen
+**/node_modules/**
+**/dist/**
+**/.next/**
+**/build/**
+.yarn
+.pnp.*
