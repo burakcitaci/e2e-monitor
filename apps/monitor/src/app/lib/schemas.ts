@@ -122,6 +122,9 @@ export const policySchema = z.object({
 export const policiesResponseSchema = apiResponseSchema(z.array(policySchema));
 export const policyResponseSchema = apiResponseSchema(policySchema);
 export const policyDetailSchema = z.object({
+  analysis: policyEvaluationSchema
+    .extend({ from: z.string(), to: z.string() })
+    .optional(),
   policy: policySchema,
   latestEvaluation: policyEvaluationSchema.optional(),
   evaluations: z.array(policyEvaluationSchema),

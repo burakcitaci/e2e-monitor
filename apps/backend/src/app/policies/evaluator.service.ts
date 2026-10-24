@@ -95,6 +95,26 @@ export class EvaluatorService
     return new Map(rows.map((row) => [row._id, row.result]));
   }
 
+  async analyzeRange(policy: Policy & { _id: unknown }, minutes: number) {
+    const now = new Date();
+    const from = new Date(now.getTime() - minutes * 60_000);
+    const captures = await this.capture.statesInRange(
+      policy.namespace,
+      policy.destination,
+      from,
+      now,
+    );
+    return {
+      ...this.result(
+        { ...policy, effectiveFrom: from, evaluationWindowMinutes: minutes },
+        captures,
+        now,
+      ),
+      from: from.toISOString(),
+      to: now.toISOString(),
+    };
+  }
+
   async history(policyId: string) {
     const rows = await this.evaluations
       .find({ policyId })

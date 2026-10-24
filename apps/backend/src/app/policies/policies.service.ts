@@ -109,7 +109,7 @@ export class PoliciesService {
     return { id };
   }
 
-  async detail(id: string) {
+  async detail(id: string, minutes?: number) {
     const policy = await this.model.findById(id).lean().exec();
     if (!policy) throw new NotFoundException('Policy not found');
     const evaluations = await this.evaluator.history(id);
@@ -117,6 +117,9 @@ export class PoliciesService {
       policy: this.serialize(policy),
       latestEvaluation: evaluations.at(-1),
       evaluations,
+      analysis: minutes
+        ? await this.evaluator.analyzeRange(policy, minutes)
+        : undefined,
     };
   }
 

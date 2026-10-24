@@ -83,9 +83,9 @@ class ApiClient {
     return (response as ApiResponse<Policy>).data;
   }
 
-  async getPolicy(id: string) {
+  async getPolicy(id: string, minutes?: number) {
     const response = await this.request(
-      `/policies/${encodeURIComponent(id)}`,
+      `/policies/${encodeURIComponent(id)}${minutes ? `?minutes=${minutes}` : ''}`,
       undefined,
       apiResponseSchema(policyDetailSchema),
     );

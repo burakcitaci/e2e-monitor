@@ -1,12 +1,20 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
   Max,
   Min,
 } from 'class-validator';
+
+export class PolicyHistoryQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([15, 30, 60, 240, 1440, 10080])
+  minutes?: number;
+}
 
 export class CreatePolicyDto {
   @IsString() name!: string;

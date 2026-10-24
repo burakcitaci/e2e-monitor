@@ -12,8 +12,12 @@ import type { PolicyEvaluation } from '../../lib/schemas';
 
 export function PolicyLatencyChart({
   evaluation,
+  from,
+  to,
 }: {
   evaluation: PolicyEvaluation;
+  from?: string;
+  to?: string;
 }) {
   const data = evaluation.messages
     .map((message) => ({
@@ -31,7 +35,10 @@ export function PolicyLatencyChart({
   }
   const received = data.filter((message) => message.latency !== null).length;
   const tickTime = (value: number) =>
-    new Date(value).toLocaleTimeString([], {
+    new Date(value).toLocaleString([], {
+      ...(from && to && Date.parse(to) - Date.parse(from) >= 86_400_000
+        ? { month: 'short' as const, day: 'numeric' as const }
+        : {}),
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -56,7 +63,10 @@ export function PolicyLatencyChart({
             <XAxis
               dataKey="sentAt"
               type="number"
-              domain={['dataMin', 'dataMax']}
+              domain={[
+                from ? Date.parse(from) : 'dataMin',
+                to ? Date.parse(to) : 'dataMax',
+              ]}
               tickFormatter={tickTime}
               tickLine={false}
               axisLine={false}

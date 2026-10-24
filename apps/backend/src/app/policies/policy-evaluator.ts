@@ -31,7 +31,9 @@ export function evaluatePolicy(
       state.namespace !== policy.namespace ||
       state.destination !== policy.destination ||
       state.sent.service !== policy.sourceService ||
-      Date.parse(state.sent.occurredAt) < windowStart
+      !Number.isFinite(Date.parse(state.sent.occurredAt)) ||
+      Date.parse(state.sent.occurredAt) < windowStart ||
+      Date.parse(state.sent.occurredAt) > now.getTime()
     ) {
       return [];
     }

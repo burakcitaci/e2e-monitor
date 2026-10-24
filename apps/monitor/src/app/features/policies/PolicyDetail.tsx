@@ -1,10 +1,10 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Clock3 } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { apiClient } from '../../lib/api-client';
-import type { PolicyDetail as PolicyDetailModel } from '../../lib/schemas';
 import { PolicyEvidence } from './PolicyEvidence';
 import { PolicyLatencyChart } from './PolicyLatencyChart';
 import { DetailPage, DetailStat } from '../../components/common/DetailPage';
@@ -17,28 +17,29 @@ const statusLabel = {
   disabled: 'Disabled',
 };
 
+const ranges = [
+  [15, 'Last 15 minutes'],
+  [30, 'Last 30 minutes'],
+  [60, 'Last 1 hour'],
+  [240, 'Last 4 hours'],
+  [1440, 'Last 1 day'],
+  [10080, 'Last 1 week'],
+] as const;
+
 export default function PolicyDetail() {
   const { id = '' } = useParams();
-  const [detail, setDetail] = React.useState<PolicyDetailModel>();
-  const [error, setError] = React.useState<string>();
-  const load = React.useCallback(async () => {
-    try {
-      setDetail(await apiClient.getPolicy(id));
-      setError(undefined);
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : 'Could not load policy',
-      );
-    }
-  }, [id]);
-  React.useEffect(() => {
-    const initial = window.setTimeout(() => void load(), 0);
-    const timer = window.setInterval(() => void load(), 30_000);
-    return () => {
-      window.clearTimeout(initial);
-      window.clearInterval(timer);
-    };
-  }, [load]);
+  const [minutes, setMinutes] = React.useState(30);
+  const {
+    data: detail,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['policies', id, 'analysis', minutes],
+    queryFn: () => apiClient.getPolicy(id, minutes),
+    enabled: Boolean(id),
+    refetchInterval: 30_000,
+  });
 
   if (!detail) {
     return (
@@ -50,10 +51,10 @@ export default function PolicyDetail() {
           ← Back to policies
         </Link>
         <p role={error ? 'alert' : 'status'}>
-          {error ?? 'Loading policy monitor…'}
+          {error?.message ?? 'Loading policy monitor…'}
         </p>
         {error && (
-          <Button variant="outline" onClick={() => void load()}>
+          <Button variant="outline" onClick={() => void refetch()}>
             Retry
           </Button>
         )}
@@ -61,23 +62,26 @@ export default function PolicyDetail() {
     );
   }
 
-  const { policy, latestEvaluation } = detail;
-  const stats = latestEvaluation
+  const { policy, latestEvaluation, analysis } = detail;
+  const stats = analysis
     ? [
         [
           'Success rate',
-          latestEvaluation.successPercentage === null
+          analysis.successPercentage === null
             ? '—'
-            : `${latestEvaluation.successPercentage.toFixed(1)}%`,
+            : `${analysis.successPercentage.toFixed(1)}%`,
         ],
         [
           'p95 latency',
-          latestEvaluation.p95Seconds === null
+          analysis.p95Seconds === null
             ? '—'
-            : `${latestEvaluation.p95Seconds.toFixed(3)}s`,
+            : `${analysis.p95Seconds.toFixed(3)}s`,
         ],
-        ['Evaluated messages', String(latestEvaluation.counts.eligible)],
-        ['Evaluation window', `${policy.evaluationWindowMinutes} min`],
+        ['Evaluated messages', String(analysis.counts.eligible)],
+        [
+          'Selected range',
+          ranges.find(([value]) => value === minutes)?.[1] ?? '',
+        ],
       ]
     : [];
   return (
@@ -120,10 +124,50 @@ export default function PolicyDetail() {
       </header>
       {error && (
         <p role="alert" className="text-sm text-destructive">
-          Refresh failed: {error}
+          Refresh failed: {error.message}
         </p>
       )}
-      {latestEvaluation ? (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-5">
+        <div className="space-y-1">
+          <h2>Historical analysis</h2>
+          <p className="text-xs text-muted-foreground">
+            Current policy rules applied to messages sent in the selected range.
+            Live monitor status uses its configured{' '}
+            {policy.evaluationWindowMinutes}-minute window.
+          </p>
+          {analysis && (
+            <p className="text-xs text-muted-foreground">
+              {new Date(analysis.from).toLocaleString()} –{' '}
+              {new Date(analysis.to).toLocaleString()}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="policy-time-range" className="sr-only">
+            Time range
+          </label>
+          <select
+            id="policy-time-range"
+            value={minutes}
+            onChange={(event) => setMinutes(Number(event.target.value))}
+            className="rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            {ranges.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="outline"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            {isFetching ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        </div>
+      </div>
+      {analysis ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map(([label, value]) => (
@@ -138,9 +182,13 @@ export default function PolicyDetail() {
                 line is the {policy.thresholdSeconds}s policy threshold.
               </p>
             </div>
-            <PolicyLatencyChart evaluation={latestEvaluation} />
+            <PolicyLatencyChart
+              evaluation={analysis}
+              from={analysis.from}
+              to={analysis.to}
+            />
           </section>
-          <PolicyEvidence policy={policy} evaluation={latestEvaluation} />
+          <PolicyEvidence policy={policy} evaluation={analysis} />
         </>
       ) : (
         <section className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">

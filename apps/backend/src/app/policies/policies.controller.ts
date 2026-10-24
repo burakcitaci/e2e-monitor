@@ -6,8 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { CreatePolicyDto, UpdatePolicyDto } from './policy.dto';
+import {
+  CreatePolicyDto,
+  UpdatePolicyDto,
+  PolicyHistoryQueryDto,
+} from './policy.dto';
 import { PoliciesService } from './policies.service';
 
 @Controller('policies')
@@ -28,8 +33,14 @@ export class PoliciesController {
   @Delete(':id') async remove(@Param('id') id: string) {
     return { success: true, data: await this.service.remove(id) };
   }
-  @Get(':id') async detail(@Param('id') id: string) {
-    return { success: true, data: await this.service.detail(id) };
+  @Get(':id') async detail(
+    @Param('id') id: string,
+    @Query() query: PolicyHistoryQueryDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.detail(id, query.minutes),
+    };
   }
   @Get(':id/evaluate') async evaluate(@Param('id') id: string) {
     return { success: true, data: await this.service.evaluate(id) };

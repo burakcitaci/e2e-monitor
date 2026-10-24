@@ -82,6 +82,40 @@ export class CaptureService {
       );
   }
 
+  async statesInRange(
+    namespace: string,
+    destination: string,
+    from: Date,
+    to: Date,
+  ) {
+    const items = await this.model
+      .find({
+        'state.namespace': namespace,
+        'state.destination': destination,
+        $expr: {
+          $let: {
+            vars: {
+              sentAt: {
+                $convert: {
+                  input: '$state.sent.occurredAt',
+                  to: 'date',
+                  onError: null,
+                  onNull: null,
+                },
+              },
+            },
+            in: {
+              $and: [{ $gte: ['$$sentAt', from] }, { $lte: ['$$sentAt', to] }],
+            },
+          },
+        },
+      })
+      .select({ state: 1 })
+      .lean()
+      .exec();
+    return items.map((item) => ({ id: String(item._id), state: item.state }));
+  }
+
   async detail(id: string) {
     const capture = await this.model.findById(id).lean().exec();
     if (!capture) return null;
