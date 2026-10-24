@@ -4,12 +4,7 @@ import { useParams } from 'react-router';
 import { PolicyEvidence } from './components/PolicyEvidence';
 import { PolicyLatencyChart } from './components/PolicyLatencyChart';
 import { DetailPage, DetailStat } from '../../components/common/DetailPage';
-import {
-  BackLink,
-  PageHeader,
-  PageSection,
-  PageState,
-} from '../../components/common/Page';
+import { BackLink, PageHeader, PageState } from '../../components/common/Page';
 import { usePolicyDetail } from '../policies/api/hooks';
 import { PolicyStatusBadge } from '../policies/components/PolicyStatusBadge';
 import { PolicyHistoryControls } from './components/PolicyHistoryControls';
@@ -102,21 +97,11 @@ export default function PolicyDetail() {
               <DetailStat key={label} label={label} value={value} />
             ))}
           </div>
-          <PageSection
-            title="Delivery latency"
-            description={
-              <>
-                Each point is a captured message at its sent time. The dashed
-                line is the {policy.thresholdSeconds}s policy threshold.
-              </>
-            }
-          >
-            <PolicyLatencyChart
-              evaluation={analysis}
-              from={analysis.from}
-              to={analysis.to}
-            />
-          </PageSection>
+          <PolicyLatencyChart
+            evaluation={analysis}
+            from={analysis.from}
+            to={analysis.to}
+          />
           <PolicyEvidence policy={policy} evaluation={analysis} />
         </>
       ) : (

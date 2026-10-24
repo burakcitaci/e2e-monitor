@@ -5,6 +5,7 @@ export const policyTimeRanges = [
   [240, 'Last 4 hours'],
   [1440, 'Last 1 day'],
   [10080, 'Last 1 week'],
+  [43200, 'Last 30 days'],
 ] as const;
 
 export function policyTimeRangeLabel(minutes: number) {

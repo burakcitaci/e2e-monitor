@@ -1,4 +1,10 @@
-# Agent guide
+# Agent Guide & Cost Optimization
+
+## Response Budget & Cost Reduction (Strict)
+- **Be concise:** Provide direct, production-ready code implementations immediately. Avoid conversational filler, preambles, and repetitive post-code summaries.
+- **Explanation Limit:** Limit explanatory or architectural commentary to a maximum of 3 lines per response.
+- **No Unsolicited Scans:** Do not execute full-repository searches, broad `grep`/`rg` commands, or structural directory listings unless specifically requested or required for the immediate task.
+- **Use Diffs:** Present code updates as compact, targeted Git-style diffs or specific function rewrites instead of outputting entire unchanged files. This directly reduces output token costs.
 
 ## Graphify (Code Intelligence)
 - Use the existing graph once at the start of a coherent code investigation or refactoring task to locate relevant symbols and dependencies. Reuse that context throughout the task; do not repeat queries for each follow-up, file read, edit, or test.
@@ -27,6 +33,7 @@
 - `yarn lint` — `nx run-many -t lint`.
 - `yarn typecheck` — `nx run-many -t typecheck`.
 - `yarn graph:update` — `graphify update .` (Manual local code-only index refresh; Husky rebuilds the graph before commits).
+- `yarn verify` — Comprehensive workspace verification pipeline running lint, typecheck, and unit tests sequentially.
 
 ## Conventions
 - Register lazy feature routes in `apps/monitor/src/app/app.tsx`; page entry points live in `features/<feature>/index.tsx`.
@@ -70,6 +77,4 @@ No root `src/`; source folders are scoped to workspace projects.
 - `apps/monitor-e2e/src/` — Playwright browser scenarios covering dashboard feature flows.
 
 ## Verification
-- Run `yarn verify` (lint, typecheck, unit tests, builds) before declaring code changes done.
-- Run `yarn test:e2e` for browser flows; CI runs both on PRs (`.github/workflows/ci.yml`).
-- Install Chromium with `yarn playwright install chromium` if needed; see `README.md` and `apps/monitor-e2e/README.md`.
+- Run `yarn verify` to execute linting, typechecking, and the standard test suites across the workspace before declaring a task complete.

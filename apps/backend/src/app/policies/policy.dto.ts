@@ -12,7 +12,7 @@ import {
 export class PolicyHistoryQueryDto {
   @IsOptional()
   @Type(() => Number)
-  @IsIn([15, 30, 60, 240, 1440, 10080])
+  @IsIn([15, 30, 60, 240, 1440, 10080, 43200])
   minutes?: number;
 }
 

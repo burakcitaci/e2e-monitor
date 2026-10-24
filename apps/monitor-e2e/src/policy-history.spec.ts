@@ -68,6 +68,16 @@ test('time range reloads the policy chart and evidence from the same analysis', 
   const chart = page.getByRole('region', {
     name: 'Message delivery latency line chart compared with policy threshold',
   });
+  const chartCard = page.getByRole('region', {
+    name: 'Delivery latency',
+    exact: true,
+  });
+  await expect(chartCard).toContainText('Received messages');
+  await expect(chartCard).toContainText('Policy threshold');
+  await test.info().attach('policy-latency-chart', {
+    body: await chartCard.screenshot(),
+    contentType: 'image/png',
+  });
   await expect(chart.getByRole('link')).toHaveCount(30);
   const positions = await chart
     .locator('a circle')
@@ -85,7 +95,7 @@ test('time range reloads the policy chart and evidence from the same analysis', 
   await page.getByRole('button', { name: 'Time', exact: true }).click();
   await expect(chart.locator('.recharts-line-curve')).toBeAttached();
   const curve = await chart.locator('.recharts-line-curve').getAttribute('d');
-  expect((curve?.match(/L/g) ?? []).length).toBe(29);
+  expect((curve?.match(/[LC]/g) ?? []).length).toBe(29);
   await expect(chart.getByRole('link')).toHaveCount(30);
   await page.getByRole('button', { name: 'Per message', exact: true }).click();
   await page.getByLabel('Time range', { exact: true }).selectOption('10080');
@@ -103,8 +113,19 @@ test('time range reloads the policy chart and evidence from the same analysis', 
       name: 'Message delivery latency line chart compared with policy threshold',
     }),
   ).toBeVisible();
-  await page
-    .getByRole('link', { name: 'Open message range-10080', exact: true })
-    .click();
+  for (const minutes of ['1440', '10080', '43200']) {
+    await page.getByLabel('Time range', { exact: true }).selectOption(minutes);
+    await expect(
+      page.getByRole('link', { name: `range-${minutes}`, exact: true }),
+    ).toBeVisible();
+    await expect(chartCard).toContainText('p95 delivery latency per');
+    expect(
+      await chart.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await expect(chart.getByRole('link')).toHaveCount(0);
+  }
+  await page.getByRole('link', { name: 'range-43200', exact: true }).click();
   await expect(page).toHaveURL(/\/messages\/message$/);
 });
