@@ -41,7 +41,7 @@ export function CreatePolicySheet({
   ] as const;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>Create policy</SheetTitle>
           <SheetDescription>
@@ -49,9 +49,12 @@ export function CreatePolicySheet({
             receive the message before the deadline.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <form
+          onSubmit={onSubmit}
+          className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2"
+        >
           {textFields.map(([field, label]) => (
-            <label key={field} className="block text-sm font-medium">
+            <label key={field} className="block min-w-0 text-sm font-medium">
               {label}
               <Input
                 required
@@ -62,7 +65,7 @@ export function CreatePolicySheet({
             </label>
           ))}
           {numberFields.map(([field, label, min]) => (
-            <label key={field} className="block text-sm font-medium">
+            <label key={field} className="block min-w-0 text-sm font-medium">
               {label}
               <Input
                 required
@@ -76,7 +79,11 @@ export function CreatePolicySheet({
               />
             </label>
           ))}
-          <Button type="submit" disabled={pending} className="w-full">
+          <Button
+            type="submit"
+            disabled={pending}
+            className="col-span-full mt-1 w-full"
+          >
             {pending ? 'Creating…' : 'Create policy'}
           </Button>
         </form>
