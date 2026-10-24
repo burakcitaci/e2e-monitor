@@ -124,14 +124,25 @@ The .NET example builds independently with `dotnet build examples/servicebus-csh
 ## Codebase graph
 
 ```powershell
-graphify update . --force
-graphify query "CaptureService MessagingChatRuntime MessagesController" --budget 1500
+yarn graph:update
+graphify query "CaptureService" --budget 300
 ```
 
-Graphify updates code locally without an AI key. `--force` allows removal of
-obsolete nodes. It preserves the existing semantic documentation layer; use the
-full Graphify skill workflow to rebuild documentation semantics. Generated
-`graphify-out/graph.json`, `graph.html`, and `GRAPH_REPORT.md` are Git-ignored.
+Use Graphify once to orient a coherent task, then reuse the findings and read
+only the relevant source sections. Query again for new dependency questions,
+not before every edit. Start with exact symbols and a small output budget.
+
+The local post-commit hook updates the code graph automatically in the background.
+Use `yarn graph:update` manually only when an uncommitted structural change must
+be indexed for the current investigation. This command performs local AST
+extraction without an AI key or LLM tokens and preserves existing documentation
+semantics. The installed `update` command does not accept `--code-only`.
+
+Keep reusable query notes short (target 150 words or fewer), with source references
+and an outcome; do not save full conversations or tool output. Generated graphs,
+reports, memory, caches, and backups under `graphify-out/` remain Git-ignored.
+Graphify does not measure Codex conversation-token savings; its benefit depends
+on reducing subsequent exploration.
 
 ## Local data
 

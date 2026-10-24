@@ -1,9 +1,16 @@
 # Agent guide
 
 ## Graphify (Code Intelligence)
-- **Always query the Graphify knowledge graph first** using the `$graphify` tool or `graphify query` before opening, searching, or reading raw source files sequentially.
-- Use `graphify path` to trace structural boundaries and connections between the NestJS backend and the React monitor.
-- If you need to refresh the graph after making structural changes, run `graphify update . --code-only` to sync `graphify-out/graph.json` without consuming LLM extraction tokens.
+- Use the existing graph once at the start of a coherent code investigation or refactoring task to locate relevant symbols and dependencies. Reuse that context throughout the task; do not repeat queries for each follow-up, file read, edit, or test.
+- Skip a ceremonial query when the current task has already established the relevant files and relationships. Re-query only for a new dependency question, a scope change, or evidence that the graph is stale or incomplete.
+- Start with an exact symbol and `graphify query "<symbol>" --budget 300`. Prefer `graphify path "<A>" "<B>"` for connections and `graphify explain "<symbol>"` for a focused concept. Narrow noisy queries before increasing their budget; never request a whole traversal just because output was truncated.
+- After navigation, read only relevant source sections and use targeted `rg` searches for implementation details. Avoid dumping whole files, the raw graph, reports, vocabulary lists, or saved conversations into context. Read architecture reports only for an architecture task that needs them.
+- Keep the existing automatic post-commit hook. It runs a local code-only rebuild in the background without LLM extraction tokens. Do not also rebuild after every edit or query. Run `yarn graph:update` once before a commit only when structural changes must be indexed to answer a concrete question; otherwise let the hook refresh the graph.
+- The installed CLI's `graphify update .` is code-only and preserves existing semantic content. It does not accept `--code-only`. Do not run semantic extraction or LLM labeling as routine maintenance.
+- When a graph query produces a reusable finding, save a concise note with symbols, source references, conclusion, and outcome (`useful`, `dead_end`, or `corrected`). Target 150 words or fewer; never save full prompts, transcripts, source dumps, or tool logs. Inspect only relevant notes or short lessons on later tasks.
+- Treat `graphify-out/` as ignored local output. Do not stage graphs, reports, memory, caches, or backups unless explicitly requested. Keep dependency and generated-output folders excluded from indexing.
+- Graph construction cost and Codex conversation usage are different. Do not claim measured token savings without a comparison; a graph query is useful when it reduces subsequent exploration.
+- Explicit user requests to use Graphify take precedence. When `/graphify` is invoked, follow the installed skill for the requested operation.
 
 ## Stack
 - Nx + Yarn workspaces: React monitor, NestJS API, Mongoose persistence; see `package.json` and `README.md`.
@@ -19,7 +26,7 @@
 - `yarn test` — `nx run-many -t test`.
 - `yarn lint` — `nx run-many -t lint`.
 - `yarn typecheck` — `nx run-many -t typecheck`.
-- `yarn graph:update` — `graphify update . --code-only` (Updates the code intelligence index).
+- `yarn graph:update` — `graphify update .` (Local code-only index refresh; normally handled by the post-commit hook).
 
 ## Conventions
 - Register lazy feature routes in `apps/monitor/src/app/app.tsx`; page entry points live in `features/<feature>/index.tsx`.
@@ -32,7 +39,7 @@
 - Follow Nx module boundaries and React lint presets; Prettier specifies single quotes (`eslint.config.mjs`, `apps/monitor/eslint.config.mjs`, `.prettierrc`).
 
 ## Do not
-- **Do not bypass Graphify** by running full-repository `grep` or heavy text-searches if the architecture can be resolved via the index.
+- Do not run full-repository searches when the task's graph context or established file locations already narrow the scope.
 - Do not add dependencies or state libraries unless requested; use the stack in `package.json`.
 - Do not change public hook signatures unless the task requires it; preserve callers and hook tests.
 - Do not run repo-wide formatters or autofix; format only touched files using `.prettierrc`.
@@ -57,17 +64,3 @@ No root `src/`; source folders are scoped to workspace projects.
 - Run `yarn verify` (lint, typecheck, unit tests, builds) before declaring code changes done.
 - Run `yarn test:e2e` for browser flows; CI runs both on PRs (`.github/workflows/ci.yml`).
 - Install Chromium with `yarn playwright install chromium` if needed; see `README.md` and `apps/monitor-e2e/README.md`.
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
-Rules:
-- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
-- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
