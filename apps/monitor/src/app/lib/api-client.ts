@@ -441,7 +441,12 @@ class ApiClient {
       '/message-resources/resources',
       {
         method: 'POST',
-        body: JSON.stringify(resource),
+        body: JSON.stringify({
+          name: resource.name,
+          provider: resource.provider,
+          type: resource.type,
+          status: resource.status,
+        }),
       },
       messageResourceResponseSchema,
     );

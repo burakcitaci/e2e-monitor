@@ -1,5 +1,43 @@
 import { expect, test } from '@playwright/test';
 
+test('creating topic metadata sends no client ID after editing the form', async ({
+  page,
+}) => {
+  let saved: Record<string, unknown> | undefined;
+  await page.route('**/api/v1/message-resources/resources', async (route) => {
+    if (route.request().method() === 'POST') {
+      saved = route.request().postDataJSON();
+      expect(saved).toEqual({
+        name: 'new-topic',
+        provider: 'aws',
+        type: 'topic',
+        status: 'active',
+      });
+      await route.fulfill({
+        json: { success: true, data: { ...saved, id: 'server-id' } },
+      });
+    } else {
+      await route.fulfill({
+        json: {
+          success: true,
+          data: saved ? [{ ...saved, id: 'server-id' }] : [],
+        },
+      });
+    }
+  });
+  await page.goto('/messaging-resources');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel('Name', { exact: true }).fill('new-topic');
+  await sheet.getByRole('combobox').nth(1).click();
+  await page.getByRole('option', { name: 'Topic', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(sheet).toBeHidden();
+  await expect(
+    page.getByRole('cell', { name: 'new-topic', exact: true }),
+  ).toBeVisible();
+});
+
 test('shows saved destination metadata without querying brokers', async ({
   page,
 }) => {

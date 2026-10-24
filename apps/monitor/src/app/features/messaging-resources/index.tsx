@@ -9,6 +9,7 @@ import {
   useUpdateMessageResource,
 } from './api/messaging-resource';
 import { serviceBusConfig } from './lib/utils';
+import { toast } from 'sonner';
 
 export default function MessagingResources() {
   const [open, setOpen] = useState(false);
@@ -17,8 +18,10 @@ export default function MessagingResources() {
     useState<MessagingResource | null>(null);
   const { data: messageResources } = useGetMessageResources();
 
-  const { mutate: createMessageResource } = useCreateMessageResource();
-  const { mutate: updateMessageResource } = useUpdateMessageResource();
+  const { mutateAsync: createMessageResource, isPending: creating } =
+    useCreateMessageResource();
+  const { mutateAsync: updateMessageResource, isPending: updating } =
+    useUpdateMessageResource();
   const [form, setForm] = useState<Omit<MessagingResource, 'id'>>({
     name: '',
     provider: Provider.AWS,
@@ -37,18 +40,24 @@ export default function MessagingResources() {
     setCurrentResource(null);
   };
 
-  const handleSave = () => {
-    if (editing) {
-      if (!currentResource) return;
-      updateMessageResource({
-        id: currentResource.id,
-        ...form,
-      });
-    } else {
-      createMessageResource(form);
+  const handleSave = async () => {
+    try {
+      if (editing) {
+        if (!currentResource) return;
+        await updateMessageResource({
+          id: currentResource.id,
+          ...form,
+        });
+      } else {
+        await createMessageResource(form);
+      }
+      resetForm();
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Could not save resource',
+      );
     }
-    resetForm();
-    setOpen(false);
   };
 
   const handleEdit = (resource: MessagingResource) => {
@@ -114,7 +123,8 @@ export default function MessagingResources() {
         open={open}
         setOpen={setOpen}
         editing={editing}
-        form={{ ...form, id: currentResource?.id ?? '' }}
+        form={form}
+        saving={creating || updating}
         setForm={setForm}
         handleSave={handleSave}
       />

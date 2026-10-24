@@ -9,10 +9,7 @@
       "outputs": [
         "{projectRoot}/playwright-report",
         "{projectRoot}/test-results"
-      ],
-      "options": {
-        "skip-install": true
-      }
+      ]
     }
   }
 }
