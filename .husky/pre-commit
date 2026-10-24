@@ -1,10 +1,19 @@
 #!/bin/sh
 
-# uv installs Graphify here; GUI Git clients may not inherit the shell PATH.
+# uv installs Graphify into ~/.local/bin; GUI Git clients (Fork, Tower,
+# GitKraken, IDE integrations) often don't inherit the shell PATH, so we
+# add it explicitly. Without this the hook would fail silently there.
 export PATH="$HOME/.local/bin:$PATH"
 
-graphify . --code-only
+# Re-extract only the code files that changed since the last run.
+# - Incremental, so it stays fast enough for a commit hook.
+# - Uses local tree-sitter AST parsing: no LLM, no API calls, no cost.
+graphify update .
 
-graphify cluster-only
-
-graphify label
+# Rebuild communities (clusters) and the report from the updated graph.
+# - --no-label skips LLM-based community naming, so the hook stays
+#   offline and free. Communities show up as "Community N".
+# - Run `graphify label` manually when you want readable names.
+# - For very large graphs (> ~5000 nodes) or CI, also add --no-viz
+#   to skip generating the visualization.
+graphify cluster-only . --no-label
