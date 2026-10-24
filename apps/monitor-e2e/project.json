@@ -6,11 +6,12 @@
   "implicitDependencies": ["@e2e-monitor/monitor"],
   "targets": {
     "e2e": {
-      "executor": "@nx/playwright:playwright",
-      "outputs": ["{projectRoot}/playwright-report", "{projectRoot}/test-results"],
+      "outputs": [
+        "{projectRoot}/playwright-report",
+        "{projectRoot}/test-results"
+      ],
       "options": {
-        "config": "apps/monitor-e2e/playwright.config.ts",
-        "skipInstall": true
+        "skip-install": true
       }
     }
   }
