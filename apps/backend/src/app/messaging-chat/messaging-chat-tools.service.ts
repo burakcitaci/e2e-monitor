@@ -84,6 +84,9 @@ export class MessagingChatToolsService {
               },
               { text: KNOWLEDGE_INSTRUCTIONS },
               { text: JSON.stringify(context.knowledge) },
+              {
+                text: 'Answer the latest user request. Prior drafts do not lock the conversation into drafting. For recommendations, other topics, or troubleshooting, discuss alternatives or explain the error instead of calling prepare_policy/prepare_message again. Only prepare a draft when the user requests a complete new or revised draft; do not invent a delivery deadline. Preserve your helpful explanation after preparing. MessagingEntityNotFound requires checking the exact broker namespace, topic/queue and subscription; catalog metadata and captured routes do not prove current broker existence. Never claim to have checked or repaired the broker.',
+              },
             ],
           },
           contents,
@@ -104,11 +107,7 @@ export class MessagingChatToolsService {
             'The AI service returned an invalid tool response. Please try again.',
           );
         return {
-          reply: policyDraft
-            ? 'Policy prepared. Review the rule before creating it.'
-            : draft
-              ? 'Message prepared. Review or copy the draft. Publishing is handled by external applications.'
-              : text,
+          reply: text,
           draft,
           ...(policyDraft ? { policyDraft } : {}),
         };

@@ -51,7 +51,11 @@ export const outputFormat = {
     additionalProperties: false,
     required: ['reply', 'draft', 'policyDraft'],
     properties: {
-      reply: { type: 'string' },
+      reply: {
+        type: 'string',
+        description:
+          'Answer the latest user question with relevant recommendations, explanations, or troubleshooting steps. Do not replace the answer with a generic draft-review sentence.',
+      },
       draft: {
         anyOf: [
           { type: 'null' },
@@ -69,6 +73,8 @@ export const outputFormat = {
         ],
       },
       policyDraft: {
+        description:
+          'Null for recommendations, questions, troubleshooting, or discussion of an existing draft. Populate only for a requested complete new or revised policy draft.',
         anyOf: [
           { type: 'null' },
           {

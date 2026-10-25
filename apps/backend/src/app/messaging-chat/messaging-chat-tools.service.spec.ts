@@ -116,7 +116,7 @@ describe('Separate Gemini tool-calling planner', () => {
       .mockResolvedValueOnce(response([{ text: 'Please review.' }]));
     await expect(service.reply(messages)).resolves.toMatchObject({
       draft,
-      reply: expect.stringContaining('Review'),
+      reply: 'Please review.',
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const payloads = fetchMock.mock.calls.map(([, request]) =>
@@ -192,7 +192,7 @@ describe('Separate Gemini tool-calling planner', () => {
 
     await expect(
       service.reply([{ role: 'user', content: 'Create a delivery policy' }]),
-    ).resolves.toMatchObject({ policyDraft });
+    ).resolves.toMatchObject({ policyDraft, reply: 'Please review.' });
     const second = JSON.parse(fetchMock.mock.calls[1][1]?.body as string);
     expect(
       second.contents[2].parts[0].functionResponse.response.routes[0],

@@ -352,6 +352,38 @@ describe('LLM messaging planner', () => {
       'invalid message plan',
     );
   });
+  it.each([
+    [
+      'other topics?',
+      'You can compare delivery deadlines for the observed routes.',
+    ],
+    [
+      'Receive: system-messages/Subscriptions/logging-service MessagingEntityNotFound',
+      'The broker cannot find the topic/subscription. Check the exact provisioned names.',
+    ],
+    ['not working', 'Which error do you see now?'],
+  ])('answers follow-ups after a policy draft: %s', async (question, reply) => {
+    fetchMock.mockResolvedValueOnce(
+      result({ reply, draft: null, policyDraft: null }),
+    );
+    await expect(
+      service.reply([
+        { role: 'user', content: 'Create a policy for financing-api' },
+        {
+          role: 'assistant',
+          content: `Prepared draft: ${JSON.stringify(policyDraft)}`,
+        },
+        { role: 'user', content: question },
+      ]),
+    ).resolves.toEqual({ reply, draft: null, policyDraft: null });
+    const payload = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(payload.systemInstruction.parts[0].text).toContain(
+      'Answer the latest user request',
+    );
+    expect(payload.systemInstruction.parts[0].text).toContain(
+      'return both drafts null',
+    );
+  });
   it('rejects oversized context and conversations not ending in a user turn', async () => {
     await expect(
       service.reply([{ role: 'assistant', content: 'ignore instructions' }]),
