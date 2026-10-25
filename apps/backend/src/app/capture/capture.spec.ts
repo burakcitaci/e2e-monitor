@@ -66,14 +66,25 @@ describe('Application capture', () => {
       disposition: 'complete',
     });
   });
-  it('rejects AWS topic reports and mixed-provider reports for an existing capture', () => {
-    expect(() =>
-      applyCaptureEvent(undefined, {
-        ...sent,
+  it('correlates SNS reports by the SNS message ID and preserves each subscribed queue delivery', () => {
+    let state: CaptureState | undefined;
+    for (const event of [completed, sent, received]) {
+      state = applyCaptureEvent(state, {
+        ...event,
         provider: 'aws',
         destinationType: 'topic',
-      }),
-    ).toThrow('SQS queues only');
+        namespace: 'arn:aws:sns:us-east-1:000000000000',
+        subscription: event.type === 'sent' ? undefined : 'consumer-queue',
+      });
+    }
+    expect(captureTrackingRows('sns', state!)[0]).toMatchObject({
+      emulatorType: 'sns',
+      messageId: sent.messageId,
+      disposition: 'complete',
+      queue: 'application-events/subscriptions/consumer-queue',
+    });
+  });
+  it('rejects mixed-provider reports for an existing capture', () => {
     expect(() =>
       applyCaptureEvent(applyCaptureEvent(undefined, sent), {
         ...received,

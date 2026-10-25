@@ -54,9 +54,9 @@ export class MessagesController {
       this.messagesService.findTrackingMessagesByEmulator(
         emulator as EmulatorType,
       ),
-      emulator === 'azure-service-bus'
-        ? this.capture.trackingRows()
-        : Promise.resolve([]),
+      this.capture
+        .trackingRows()
+        .then((rows) => rows.filter((row) => row.emulatorType === emulator)),
     ]);
     const result = [...history, ...captured].sort(
       (a, b) =>

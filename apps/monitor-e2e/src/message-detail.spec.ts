@@ -31,6 +31,33 @@ const message = {
   ],
 };
 
+test('SNS captures are accepted and labeled as SNS in the list and detail', async ({
+  page,
+}) => {
+  const sns = {
+    ...message,
+    emulatorType: 'sns',
+    namespace: 'arn:aws:sns:us-east-1:000000000000',
+    deliveries: [{ ...message.deliveries[0], subscription: 'orders-events' }],
+  };
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    await route.fulfill({
+      json: {
+        success: true,
+        data: path.endsWith(`/tracking/${id}`) ? sns : [sns],
+      },
+    });
+  });
+  await page.goto('/');
+  await expect(page.getByText('SNS', { exact: true })).toBeVisible();
+  await page.goto(`/messages/${id}`);
+  await expect(page.getByText('AWS SNS', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('orders-events', { exact: true }).first(),
+  ).toBeVisible();
+});
+
 test('compact list opens a refreshable message detail with payload, subscriber analysis and timeline', async ({
   page,
 }) => {

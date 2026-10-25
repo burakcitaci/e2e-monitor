@@ -18,10 +18,11 @@ export const MessagesPage = () => {
     const total = messages.length;
 
     const sqs = messages.filter((m) => m.emulatorType === 'sqs').length;
+    const sns = messages.filter((m) => m.emulatorType === 'sns').length;
     const azureServiceBus = messages.filter(
       (m) => m.emulatorType === 'azure-service-bus',
     ).length;
-    return { total, sqs, azureServiceBus };
+    return { total, sqs, sns, azureServiceBus };
   }, [messages]);
 
   if (isLoading) {

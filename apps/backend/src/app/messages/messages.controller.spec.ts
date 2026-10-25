@@ -5,6 +5,26 @@ import { CaptureService } from '../capture/capture.service';
 import { AppLogger } from '../common/logging/logger.service';
 
 describe('Message details', () => {
+  it.each(['sqs', 'sns', 'azure-service-bus'])(
+    'includes only matching %s captures in the emulator endpoint',
+    async (emulator) => {
+      const controller = new MessagesController(
+        {
+          findTrackingMessagesByEmulator: async () => [],
+        } as unknown as MessageService,
+        { setContext: jest.fn(), log: jest.fn() } as unknown as AppLogger,
+        {
+          trackingRows: async () =>
+            ['sqs', 'sns', 'azure-service-bus'].map((emulatorType) => ({
+              _id: emulatorType,
+              emulatorType,
+            })),
+        } as unknown as CaptureService,
+      );
+      const result = await controller.getTrackingMessagesByEmulator(emulator);
+      expect(result.data).toEqual([{ _id: emulator, emulatorType: emulator }]);
+    },
+  );
   const capturedId = 'a'.repeat(64);
   const historyId = '507f1f77bcf86cd799439011';
   function setup() {

@@ -61,7 +61,10 @@ export const trackingMessageSchema = z.preprocess(
       .enum(['complete', 'abandon', 'deadletter', 'defer'])
       .optional()
       .nullable(),
-    emulatorType: z.enum(['sqs', 'azure-service-bus']).optional().nullable(),
+    emulatorType: z
+      .enum(['sqs', 'sns', 'azure-service-bus'])
+      .optional()
+      .nullable(),
     // Azure Service Bus optional fields
     contentType: z.string().optional(),
     subject: z.string().optional(),

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { CaptureEventDto } from './capture-event.dto';
 
 export interface CaptureDelivery {
@@ -30,8 +30,6 @@ export function applyCaptureEvent(
   const provider = event.provider ?? 'azure';
   const destinationType =
     event.destinationType ?? (provider === 'aws' ? 'queue' : 'topic');
-  if (provider === 'aws' && destinationType !== 'queue')
-    throw new BadRequestException('AWS capture supports SQS queues only.');
   if (
     state &&
     ((state.provider ?? 'azure') !== provider ||
@@ -92,7 +90,9 @@ export function captureTrackingRows(id: string, state: CaptureState) {
     trackingSource: 'capture' as const,
     emulatorType:
       state.provider === 'aws'
-        ? ('sqs' as const)
+        ? state.destinationType === 'topic'
+          ? ('sns' as const)
+          : ('sqs' as const)
         : ('azure-service-bus' as const),
     body: state.sent?.body ?? '(waiting for publisher report)',
     sentBy: state.sent?.service ?? '(waiting for publisher report)',
@@ -107,7 +107,8 @@ export function captureTrackingRows(id: string, state: CaptureState) {
     ...base,
     _id: `${id}:${delivery.subscription}:${delivery.service}`,
     queue:
-      state.destinationType === 'queue' || state.provider === 'aws'
+      state.destinationType === 'queue' ||
+      (state.provider === 'aws' && state.destinationType !== 'topic')
         ? state.destination
         : `${state.destination}/subscriptions/${delivery.subscription}`,
     receivedBy: delivery.service,

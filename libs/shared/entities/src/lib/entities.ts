@@ -20,5 +20,5 @@ export interface TrackingMessage {
   receivedAt?: Date;
   receivedBy?: string;
   disposition?: 'complete' | 'abandon' | 'deadletter' | 'defer';
-  emulatorType?: 'sqs' | 'azure-service-bus';
+  emulatorType?: 'sqs' | 'sns' | 'azure-service-bus';
 }

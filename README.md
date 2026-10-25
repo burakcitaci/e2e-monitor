@@ -8,7 +8,7 @@ conversations.
 
 The platform provisions broker resources but does not publish or consume messages,
 or settle deliveries. Those operations belong to application SDKs and examples.
-The current capture integration supports Azure Service Bus and AWS SQS through the
+The current capture integration supports Azure Service Bus, AWS SQS, and AWS SNS through the
 [C# publisher/subscriber example](examples/servicebus-csharp/README.md).
 
 ## Workspace
@@ -141,7 +141,7 @@ separate. Duplicate and out-of-order reports cannot undo completion.
 
 Optional `provider` (`azure` or `aws`) and `destinationType` (`topic` or `queue`)
 identify the transport; omitted values preserve legacy Azure topic behavior.
-AWS captures support SQS queues, not SNS topics. Queue receive/completion reports
+AWS captures support SQS queues and SNS topics delivered through subscribed SQS queues. Queue receive/completion reports
 use the queue name as the delivery target in `subscription`.
 
 MongoDB stores snapshots in `CapturedMessages`. Tracking queries also include
@@ -196,7 +196,7 @@ through the same policy creation flow as the Policies page.
 Destination names come from configured Azure example entities and active saved
 resource metadata. This is a catalog, not live discovery or a broker health check.
 SQS capture is supported by the C# example using `--provider aws --queue NAME`;
-AWS topic provisioning uses SNS, but SNS message capture is not included.
+SNS topics use `--topic NAME`; subscribers also specify an existing SQS `--queue NAME`.
 Conversation text, catalog context, and retrieved excerpts are sent to Gemini.
 See [chat configuration and limits](docs/messaging-chat.md).
 

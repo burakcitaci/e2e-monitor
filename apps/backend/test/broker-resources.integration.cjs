@@ -9,11 +9,13 @@ const {
   SQSClient,
   GetQueueAttributesCommand,
   DeleteQueueCommand,
+  SetQueueAttributesCommand,
 } = require('@aws-sdk/client-sqs');
 const {
   SNSClient,
   GetTopicAttributesCommand,
   DeleteTopicCommand,
+  ListSubscriptionsByTopicCommand,
 } = require('@aws-sdk/client-sns');
 
 const exampleProcesses = new Set();
@@ -75,12 +77,22 @@ function runExample(args, environment, listen = false, expectedCode = 0) {
   };
 }
 
-async function verifyMessaging(resource, base, db, queueUrl = false) {
+async function verifyMessaging(
+  resource,
+  base,
+  db,
+  queueUrl = false,
+  subscriberQueue = null,
+  topicArn = false,
+) {
+  const isSns = resource.provider === 'aws' && resource.type === 'topic';
   const destination = queueUrl
     ? ['--queue-url', resource.brokerAddress]
     : resource.type === 'queue'
       ? ['--queue', resource.name]
-      : ['--topic', resource.name, '--subscription', 'logging-service'];
+      : isSns
+        ? ['--topic', topicArn ? resource.brokerAddress : resource.name]
+        : ['--topic', resource.name, '--subscription', 'logging-service'];
   const common = [
     '--provider',
     resource.provider,
@@ -108,6 +120,9 @@ async function verifyMessaging(resource, base, db, queueUrl = false) {
     [
       'subscribe',
       ...common,
+      ...(isSns
+        ? [topicArn ? '--subscription' : '--queue', subscriberQueue.name]
+        : []),
       '--receiver',
       'smoke-consumer',
       '--max-messages',
@@ -139,6 +154,8 @@ async function verifyMessaging(resource, base, db, queueUrl = false) {
   assert.equal(record.state.destination, resource.name);
   assert.equal(record.state.sent.body, body);
   assert.equal(record.state.deliveries[0].service, 'smoke-consumer');
+  if (isSns)
+    assert.equal(record.state.deliveries[0].subscription, subscriberQueue.name);
   assert(
     record.state.deliveries[0].receivedAt &&
       record.state.deliveries[0].completedAt,
@@ -283,12 +300,78 @@ async function main() {
       console.log(
         `PASS ${provider} ${type}: broker + MongoDB + idempotent retry`,
       );
-      if (
-        process.argv.includes('--messaging') &&
-        (provider === 'azure' || type === 'queue')
-      ) {
-        await verifyMessaging(saved, base, db);
-        if (provider === 'aws') await verifyMessaging(saved, base, db, true);
+      if (process.argv.includes('--messaging')) {
+        if (provider === 'aws' && type === 'topic') {
+          const queue = owned.find(
+            (item) => item.provider === 'aws' && item.type === 'queue',
+          );
+          const attributes = await sqs.send(
+            new GetQueueAttributesCommand({
+              QueueUrl: queue.brokerAddress,
+              AttributeNames: ['QueueArn'],
+            }),
+          );
+          const queueArn = attributes.Attributes.QueueArn;
+          await sqs.send(
+            new SetQueueAttributesCommand({
+              QueueUrl: queue.brokerAddress,
+              Attributes: {
+                Policy: JSON.stringify({
+                  Version: '2012-10-17',
+                  Statement: [
+                    {
+                      Sid: 'PreservedSmokeRule',
+                      Effect: 'Deny',
+                      Principal: '*',
+                      Action: 'sqs:PurgeQueue',
+                      Resource: queueArn,
+                    },
+                  ],
+                }),
+              },
+            }),
+          );
+          await verifyMessaging(saved, base, db, false, queue);
+          await verifyMessaging(saved, base, db, false, queue, true);
+          const subscriptions = await sns.send(
+            new ListSubscriptionsByTopicCommand({
+              TopicArn: saved.brokerAddress,
+            }),
+          );
+          assert.equal(
+            subscriptions.Subscriptions.filter(
+              (item) => item.Endpoint === queueArn,
+            ).length,
+            1,
+            'Repeated subscribe must reuse the SNS subscription',
+          );
+          const result = await sqs.send(
+            new GetQueueAttributesCommand({
+              QueueUrl: queue.brokerAddress,
+              AttributeNames: ['Policy'],
+            }),
+          );
+          const statements = JSON.parse(result.Attributes.Policy).Statement;
+          assert(
+            statements.some((item) => item.Sid === 'PreservedSmokeRule'),
+            'Existing queue policy must be preserved',
+          );
+          const grants = statements.filter((item) =>
+            item.Sid.startsWith('E2ECaptureSns'),
+          );
+          assert.equal(grants.length, 1);
+          assert.equal(
+            grants[0].Condition.ArnEquals['aws:SourceArn'],
+            saved.brokerAddress,
+          );
+          assert.equal(grants[0].Resource, queueArn);
+          console.log(
+            'PASS SNS binding: existing queue policy preserved, topic-scoped grant, idempotent subscription',
+          );
+        } else {
+          await verifyMessaging(saved, base, db);
+          if (provider === 'aws') await verifyMessaging(saved, base, db, true);
+        }
       }
     }
     if (process.argv.includes('--messaging')) {
@@ -300,12 +383,14 @@ async function main() {
       ).done;
       assert(invalid.includes('--provider must be azure or aws'));
       const conflicting = await runExample(
-        ['publish', '--provider', 'aws', '--topic', 'events'],
+        ['subscribe', '--provider', 'aws', '--topic', 'events'],
         {},
         false,
         1,
       ).done;
-      assert(conflicting.includes('AWS uses SQS queues'));
+      assert(
+        conflicting.includes('SNS subscribe requires an existing SQS queue'),
+      );
     }
   } finally {
     for (const child of exampleProcesses) child.kill();

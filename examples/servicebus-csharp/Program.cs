@@ -2,6 +2,7 @@ using Azure.Messaging.ServiceBus;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.SQS;
+using Amazon.SimpleNotificationService;
 using ServiceBusExample;
 
 if (args.Length == 0 || args[0] is "--help" or "-h")
@@ -24,12 +25,17 @@ try
     options = CommandLine.Parse(args.Skip(1));
     provider = options.Value("provider", "MESSAGING_PROVIDER", "azure").ToLowerInvariant();
     if (provider is not ("azure" or "aws")) throw new ArgumentException("--provider must be azure or aws.");
-    if (options.Optional("queue") is not null && (options.Optional("topic") is not null || options.Optional("queue-url") is not null))
-        throw new ArgumentException("Use one destination: --queue, --queue-url, or --topic.");
-    if (provider == "aws" && (options.Optional("topic") is not null || options.Optional("subscription") is not null))
-        throw new ArgumentException("AWS uses SQS queues. Use --queue or --queue-url, not --topic/--subscription.");
+    var snsSubscriber = provider == "aws" && options.Optional("topic") is not null && command == "subscribe";
+    if (options.Optional("queue") is not null && options.Optional("queue-url") is not null)
+        throw new ArgumentException("Use --queue or --queue-url, not both.");
+    if (options.Optional("topic") is not null && (options.Optional("queue") is not null || options.Optional("queue-url") is not null) && !snsSubscriber)
+        throw new ArgumentException("Use one destination. Only SNS subscribe accepts --topic together with --queue/--queue-url.");
+    if (provider == "aws" && options.Optional("subscription") is not null && !snsSubscriber)
+        throw new ArgumentException("AWS --subscription is a queue-name alias for subscribe --topic. Use --queue for SQS.");
+    if (snsSubscriber && options.Optional("queue") is null && options.Optional("queue-url") is null && options.Optional("subscription") is null)
+        throw new ArgumentException("SNS subscribe requires an existing SQS queue: --queue NAME, --queue-url URL, or --subscription NAME.");
     if (provider == "azure" && options.Optional("queue-url") is not null) throw new ArgumentException("--queue-url is an AWS option; use --queue for Azure.");
-    if (options.Optional("queue") is not null && options.Optional("subscription") is not null) throw new ArgumentException("Queues do not use --subscription.");
+    if ((options.Optional("queue") is not null || options.Optional("queue-url") is not null) && options.Optional("subscription") is not null) throw new ArgumentException("Use --queue/--queue-url or --subscription, not both.");
     if (command == "subscribe" && options.Positionals.Count > 0) throw new ArgumentException("Subscribe does not accept a message body.");
     if (provider == "azure" && (options.Optional("endpoint") is not null || options.Optional("region") is not null)) throw new ArgumentException("--endpoint and --region are AWS options. Azure uses SERVICE_BUS_CONNECTION_STRING.");
     if (command == "publish" && options.Optional("max-messages") is not null) throw new ArgumentException("--max-messages is for subscribe. Use --count for publish.");
@@ -70,6 +76,7 @@ try
 {
     await using var client = provider == "azure" ? new ServiceBusClient(connectionString) : null;
     using var sqs = provider == "aws" ? CreateSqsClient(options) : null;
+    using var sns = provider == "aws" && options.Optional("topic") is not null ? CreateSnsClient(options) : null;
     using var http = new HttpClient
     {
         BaseAddress = new Uri(options.Value("capture-api", "CAPTURE_API_URL", "http://localhost:3000/api/v1/").TrimEnd('/') + "/")
@@ -79,7 +86,15 @@ try
         ? options.Value("sender", "CAPTURE_SERVICE", "financing-api")
         : options.Value("receiver", "CAPTURE_SERVICE", "orders-consumer");
     IMessageTransport bus;
-    if (sqs is not null)
+    if (sns is not null && sqs is not null)
+    {
+        var snsBus = await SnsMessaging.ConnectAsync(sns, sqs, topic,
+            options.Optional("queue") ?? options.Optional("subscription"), options.Optional("queue-url"), command == "subscribe",
+            sink, service, shutdown.Token);
+        bus = snsBus;
+        Console.WriteLine($"Configuration: provider=aws namespace={snsBus.Namespace} topic={snsBus.TopicName} service={service}");
+    }
+    else if (sqs is not null)
     {
         var queueUrl = options.Optional("queue-url") ?? (options.Optional("queue") is null ? Environment.GetEnvironmentVariable("AWS_SQS_QUEUE_URL") : null);
         var awsBus = await SqsMessaging.ConnectAsync(sqs, queue ?? options.Value("queue", "AWS_SQS_QUEUE_NAME", "orders-queue"), queueUrl, sink, service, shutdown.Token);
@@ -137,6 +152,9 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project examples/servicebus-csharp -- subscribe [--topic NAME] [--subscription NAME] [--receiver SERVICE]");
     Console.WriteLine("AWS SQS: publish [message] --provider aws --queue NAME [--sender SERVICE]");
     Console.WriteLine("         subscribe --provider aws --queue NAME [--receiver SERVICE] [--max-messages N]");
+    Console.WriteLine("AWS SNS: publish [message] --provider aws --topic NAME_OR_ARN [--sender SERVICE]");
+    Console.WriteLine("         subscribe --provider aws --topic NAME_OR_ARN --queue NAME [--receiver SERVICE]");
+    Console.WriteLine("SNS subscribe binds an existing SQS queue; --subscription NAME is an alias for --queue NAME.");
     Console.WriteLine("Azure queues: use --provider azure --queue NAME (no subscription).");
     Console.WriteLine("Common options: --provider azure|aws --capture-api URL --capture-token TOKEN");
     Console.WriteLine("AWS options: --queue-url URL (instead of --queue), --endpoint URL|aws, --region REGION");
@@ -147,20 +165,32 @@ static void PrintUsage()
 
 static AmazonSQSClient CreateSqsClient(CommandLine options)
 {
+    var (config, credentials) = AwsOptions<AmazonSQSConfig>(options);
+    return credentials is null ? new AmazonSQSClient(config) : new AmazonSQSClient(credentials, config);
+}
+
+static AmazonSimpleNotificationServiceClient CreateSnsClient(CommandLine options)
+{
+    var (config, credentials) = AwsOptions<AmazonSimpleNotificationServiceConfig>(options);
+    return credentials is null ? new AmazonSimpleNotificationServiceClient(config) : new AmazonSimpleNotificationServiceClient(credentials, config);
+}
+
+static (T Config, AWSCredentials? Credentials) AwsOptions<T>(CommandLine options) where T : ClientConfig, new()
+{
     var endpoint = options.Value("endpoint", "AWS_ENDPOINT_URL", "http://localhost:4566");
     var region = options.Value("region", "AWS_REGION", "us-east-1");
-    var config = new AmazonSQSConfig { AuthenticationRegion = region, Timeout = TimeSpan.FromSeconds(30) };
+    var config = new T { AuthenticationRegion = region, Timeout = TimeSpan.FromSeconds(30) };
     if (endpoint.Equals("aws", StringComparison.OrdinalIgnoreCase))
     {
         config.RegionEndpoint = RegionEndpoint.GetBySystemName(region);
-        return new AmazonSQSClient(config);
+        return (config, null);
     }
     if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
         throw new ArgumentException("--endpoint must be an HTTP(S) URL or aws.");
     config.ServiceURL = uri.ToString();
-    return uri.Scheme == "http"
-        ? new AmazonSQSClient(new BasicAWSCredentials(Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID") ?? "test", Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY") ?? "test"), config)
-        : new AmazonSQSClient(config);
+    return (config, uri.Scheme == "http"
+        ? new BasicAWSCredentials(Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID") ?? "test", Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY") ?? "test")
+        : null);
 }
 
 sealed class CommandLine

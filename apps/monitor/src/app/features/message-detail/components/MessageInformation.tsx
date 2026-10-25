@@ -17,7 +17,11 @@ export function MessageInformation({
     ['Publisher', message.sentBy],
     [
       'Transport',
-      message.emulatorType === 'sqs' ? 'AWS SQS' : 'Azure Service Bus',
+      message.emulatorType === 'sns'
+        ? 'AWS SNS'
+        : message.emulatorType === 'sqs'
+          ? 'AWS SQS'
+          : 'Azure Service Bus',
     ],
     [
       'Payload size',

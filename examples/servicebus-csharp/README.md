@@ -1,9 +1,9 @@
 # C# publisher and subscriber
 
-A tiny .NET 10 console app using Azure.Messaging.ServiceBus and AWSSDK.SQS. `Publisher.cs`
+A tiny .NET 10 console app using Azure.Messaging.ServiceBus, AWSSDK.SQS, and AWSSDK.SimpleNotificationService. `Publisher.cs`
 represents Backend A; `Subscriber.cs` represents Backend B. Both use
 `IMessageTransport`, implemented by `TopicMessaging.cs` (Azure queues/topics) and
-`SqsMessaging.cs` (AWS queues). Azure remains the default provider.
+`SqsMessaging.cs` (AWS queues) and `SnsMessaging.cs` (AWS topics through SQS). Azure remains the default provider.
 
 Defaults match `config/servicebus-config.json`:
 
@@ -11,8 +11,48 @@ Defaults match `config/servicebus-config.json`:
 - Subscription: `logging-service` (alternatively `analytics-processor`)
 
 The example uses the real Service Bus emulator or LocalStack, not an in-memory bus.
-It does not create queues, topics, or subscriptions. Create them on the monitor's
-Resources page or through Docker bootstrap configuration first.
+Create queues and topics on the monitor's Resources page or through Docker
+bootstrap configuration first. SNS subscribers create/reuse the topic-to-queue
+subscription and a topic-scoped queue permission; they do not create the topic or queue.
+
+## AWS SNS topics
+
+Create an AWS **topic** `application-events` and a dedicated AWS **queue**
+`orders-events` in Resources. Then start the subscriber before publishing:
+
+```powershell
+# Terminal 1: subscribe to the topic through an existing SQS queue
+dotnet run --project examples/servicebus-csharp -- subscribe `
+  --provider aws --topic application-events --queue orders-events `
+  --receiver orders-consumer
+
+# Terminal 2: publish directly to SNS
+dotnet run --project examples/servicebus-csharp -- publish `
+  --provider aws --topic application-events --sender financing-api `
+  --body 'Hello SNS' --count 20 --interval-ms 100
+```
+
+`--topic` accepts a topic name or ARN. Name lookup uses `sns:ListTopics`;
+supplying an ARN avoids that lookup. SNS subscribing accepts `--queue NAME`,
+`--queue-url URL`, or `--subscription NAME` (an alias for an existing queue name).
+Publishing to SNS needs no queue argument. Each subscriber should use its own
+dedicated queue, so subscribers receive independent copies of a publication.
+
+The subscriber preserves the existing queue policy and adds only a grant for
+`sqs:SendMessage` from the selected SNS topic. It creates/reuses the SNS-to-SQS
+binding with raw delivery disabled. The SNS envelope retains the original SNS
+message ID and capture attribute, allowing sends and receives to correlate even
+though SQS assigns a separate ID. The business handler receives the original
+body. The monitor labels these captures **SNS**; namespace is the topic ARN prefix,
+destination is the topic name, and subscription is the receiving queue name.
+
+Queues and subscriptions remain after Ctrl+C, so offline messages can be buffered.
+Messages outside the selected SNS topic are not deleted; use a dedicated queue
+instead of one containing unrelated SQS traffic. Same-account SNS/SQS binding is
+supported automatically; cross-account subscriptions may require confirmation.
+LocalStack uses port 4566 with both `sqs` and `sns` enabled. Real AWS additionally
+requires permissions for SNS lookup/publish/subscribe/attributes and SQS queue
+attributes/policy/receive/delete as appropriate. Existing Azure commands are unchanged.
 
 ## AWS SQS and queue parameters
 
@@ -37,8 +77,8 @@ is not loaded. Never put real credentials in source or command-line arguments.
 
 `--queue-url URL` can replace `--queue NAME`. Environment fallbacks are
 `AWS_SQS_QUEUE_NAME`, `AWS_SQS_QUEUE_URL`, and `MESSAGING_PROVIDER`. Explicit
-`--queue` overrides the queue URL environment variable. AWS supports SQS in this
-example; SNS topics cannot be consumed directly as SQS queues.
+`--queue` overrides the queue URL environment variable. Add `--topic` when
+subscribing an SQS queue to SNS, as shown above.
 
 Azure queues use the same commands with `--provider azure --queue orders-queue`.
 Do not pass `--subscription` for a queue. Existing Azure topic commands remain
@@ -51,7 +91,7 @@ Handler failures leave messages for redelivery after the queue visibility timeou
 FIFO queues automatically use the sender service as message group and a fresh
 capture ID as deduplication ID.
 
-Both transports report sent/received/completed events to the monitor. SQS records
+All transports report sent/received/completed events to the monitor. SQS records
 are labeled SQS and use the queue ARN prefix as namespace. Queue delivery targets
 use the queue name in the capture contract's subscription field; topic subscriptions
 retain their real names. Capture IDs are carried in SQS message attributes or
@@ -185,4 +225,5 @@ reports that the executable is locked.
 
 SDK reference: https://www.nuget.org/packages/Azure.Messaging.ServiceBus/7.20.2
 AWS SDK reference: https://www.nuget.org/packages/AWSSDK.SQS/4.0.100.20
+SNS SDK reference: https://www.nuget.org/packages/AWSSDK.SimpleNotificationService/4.0.100.21
 Emulator setup: https://learn.microsoft.com/azure/service-bus-messaging/test-locally-with-service-bus-emulator
