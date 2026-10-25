@@ -41,6 +41,47 @@ const completed: CaptureEventDto = {
 };
 
 describe('Application capture', () => {
+  it('correlates SQS lifecycle reports and renders a queue instead of an Azure subscription path', async () => {
+    let state: CaptureState | undefined;
+    for (const report of [completed, sent, received]) {
+      const event = {
+        ...report,
+        provider: 'aws' as const,
+        destinationType: 'queue' as const,
+        namespace: 'arn:aws:sqs:us-east-1:000000000000',
+        destination: 'orders',
+        ...(report.type === 'sent' ? {} : { subscription: 'orders' }),
+      };
+      expect(
+        await validate(plainToInstance(CaptureEventDto, event), {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        }),
+      ).toHaveLength(0);
+      state = applyCaptureEvent(state, event);
+    }
+    expect(captureTrackingRows('sqs', state!)[0]).toMatchObject({
+      emulatorType: 'sqs',
+      queue: 'orders',
+      disposition: 'complete',
+    });
+  });
+  it('rejects AWS topic reports and mixed-provider reports for an existing capture', () => {
+    expect(() =>
+      applyCaptureEvent(undefined, {
+        ...sent,
+        provider: 'aws',
+        destinationType: 'topic',
+      }),
+    ).toThrow('SQS queues only');
+    expect(() =>
+      applyCaptureEvent(applyCaptureEvent(undefined, sent), {
+        ...received,
+        provider: 'aws',
+        destinationType: 'queue',
+      }),
+    ).toThrow('does not match');
+  });
   it.each([
     [sent, received, completed],
     [sent, completed, received],

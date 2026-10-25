@@ -34,7 +34,12 @@ export class CaptureService {
   async ingest(event: CaptureEventDto) {
     const id = createHash('sha256')
       .update(
-        JSON.stringify([event.namespace, event.destination, event.captureId]),
+        JSON.stringify([
+          ...(event.provider === 'aws' ? ['aws'] : []),
+          event.namespace,
+          event.destination,
+          event.captureId,
+        ]),
       )
       .digest('hex');
     // Revision compare-and-swap prevents simultaneous sender/subscriber reports

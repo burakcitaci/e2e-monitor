@@ -15,4 +15,14 @@ export const environmentSchema = Joi.object({
   MONGO_AUTH_SOURCE: Joi.string().default('admin'),
   THROTTLE_TTL: Joi.number().default(60),
   THROTTLE_LIMIT: Joi.number().default(60),
+  SERVICE_BUS_ADMIN_CONNECTION_STRING: Joi.string().default(
+    'Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;',
+  ),
+  AWS_ENDPOINT_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .allow('')
+    .default('http://localhost:4566'),
+  AWS_REGION: Joi.string().default('us-east-1'),
+  AWS_ACCESS_KEY_ID: Joi.string().allow(''),
+  AWS_SECRET_ACCESS_KEY: Joi.string().allow(''),
 });

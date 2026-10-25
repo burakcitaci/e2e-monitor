@@ -14,7 +14,9 @@ public sealed record CaptureEvent(
     string Service,
     DateTimeOffset OccurredAt,
     string? Subscription = null,
-    string? Body = null);
+    string? Body = null,
+    string? Provider = null,
+    string? DestinationType = null);
 
 // Best-effort reporting. Never turn telemetry failure into message redelivery.
 public sealed class CaptureSink(HttpClient http, string token)

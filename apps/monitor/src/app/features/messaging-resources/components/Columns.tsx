@@ -1,15 +1,13 @@
 import { IconBrandAws, IconBrandAzure } from '@tabler/icons-react';
-import { MessagingResource, Provider } from '../lib/entities';
-import { Badge } from '../../../components/ui/badge';
-import { Pause, Pencil, Play, Trash2 } from 'lucide-react';
+import { MessagingResource } from '../lib/entities';
+import { Pencil } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '../../../components/data-table/DataTableColumnHeader';
 
 export const createColumns = (
-  handleActivate: (id: string) => void,
   handleEdit: (resource: MessagingResource) => void,
-  handleDelete: (id: string) => void,
 ): ColumnDef<MessagingResource>[] => {
   return [
     {
@@ -83,39 +81,14 @@ export const createColumns = (
       id: 'actions', // 👈 better than accessorKey for non-data columns
       cell: ({ row }) => (
         <div className="flex gap-2 justify-end">
-          {row.original.provider === Provider.AWS ? (
-            <>
-              <Badge
-                variant={
-                  row.original.status === 'active' ? 'outline' : 'default'
-                }
-                className="cursor-pointer"
-                onClick={() => handleActivate(row.original.id)}
-              >
-                {row.original.status === 'active' ? (
-                  <Pause className="h-4 w-3" />
-                ) : (
-                  <Play className="h-4 w-3" />
-                )}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => handleEdit(row.original)}
-              >
-                <Pencil className="h-4 w-3" />
-              </Badge>
-              <Badge
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => handleDelete(row.original.id)}
-              >
-                <Trash2 className="h-4 w-3" />
-              </Badge>
-            </>
-          ) : (
-            <div></div>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Edit ${row.original.name}`}
+            onClick={() => handleEdit(row.original)}
+          >
+            <Pencil className="size-4" />
+          </Button>
         </div>
       ),
     },

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('creating topic metadata sends no client ID after editing the form', async ({
+test('creating a broker topic sends no client ID after editing the form', async ({
   page,
 }) => {
   let saved: Record<string, unknown> | undefined;
@@ -68,11 +68,59 @@ test('shows saved destination metadata without querying brokers', async ({
     page.getByRole('cell', { name: 'orders', exact: true }),
   ).toHaveCount(1);
   await expect(
-    page.getByText('This does not create or modify broker resources.', {
+    page.getByText('persist their records in MongoDB.', {
       exact: false,
     }),
   ).toBeVisible();
   expect(brokerRequests).toEqual([]);
+});
+
+test('Azure topic provisioning includes subscriptions and preserves the form after broker failure', async ({
+  page,
+}) => {
+  let attempts = 0;
+  await page.route('**/api/v1/message-resources/resources', async (route) => {
+    if (route.request().method() !== 'POST')
+      return route.fulfill({ json: { success: true, data: [] } });
+    const resource = route.request().postDataJSON();
+    expect(resource).toEqual({
+      name: 'payment-events',
+      provider: 'azure',
+      type: 'topic',
+      status: 'active',
+      subscriptions: ['logging-service'],
+    });
+    attempts++;
+    if (attempts === 1)
+      return route.fulfill({
+        status: 502,
+        json: { message: 'Broker unavailable; record not saved' },
+      });
+    return route.fulfill({
+      json: { success: true, data: { ...resource, id: 'azure-topic' } },
+    });
+  });
+  await page.goto('/messaging-resources');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel('Name', { exact: true }).fill('payment-events');
+  await sheet.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: 'Azure', exact: true }).click();
+  await sheet.getByRole('combobox').nth(1).click();
+  await page.getByRole('option', { name: 'Topic', exact: true }).click();
+  await sheet
+    .getByLabel('Subscriptions (comma-separated)')
+    .fill('logging-service');
+  await sheet.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(
+    page.getByText('Broker unavailable; record not saved'),
+  ).toBeVisible();
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel('Subscriptions (comma-separated)')).toHaveValue(
+    'logging-service',
+  );
+  await sheet.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(sheet).toBeHidden();
 });
 
 test('collector has no send or settlement controls and redirects retired broker dashboards', async ({

@@ -8,11 +8,7 @@ import {
   useGetMessageResources,
   useUpdateMessageResource,
 } from './api/hooks';
-import {
-  configuredResources,
-  emptyResourceForm,
-  resourceForm,
-} from './lib/resource-form';
+import { emptyResourceForm, resourceForm } from './lib/resource-form';
 import { toast } from 'sonner';
 import { Page, PageHeader, PageState } from '../../components/common/Page';
 
@@ -40,13 +36,25 @@ export default function MessagingResources() {
 
   const handleSave = async () => {
     try {
+      const resource = {
+        ...form,
+        ...(form.subscriptions
+          ? {
+              subscriptions: [
+                ...new Set(
+                  form.subscriptions.map((name) => name.trim()).filter(Boolean),
+                ),
+              ],
+            }
+          : {}),
+      };
       if (currentResource) {
         await updateMessageResource({
           id: currentResource.id,
-          ...form,
+          ...resource,
         });
       } else {
-        await createMessageResource(form);
+        await createMessageResource(resource);
       }
       resetForm();
       setOpen(false);
@@ -63,23 +71,11 @@ export default function MessagingResources() {
     setOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    console.log(id);
-  };
-
-  const handleActivate = (id: string) => {
-    console.log(id);
-  };
-
-  const allMessageResources = [
-    ...(messageResources ?? []),
-    ...configuredResources,
-  ];
   return (
     <Page>
       <PageHeader
         title="Queues and Topics"
-        description="Manage saved destination metadata. This does not create or modify broker resources."
+        description="Create queues and topics in Azure Service Bus or AWS, then persist their records in MongoDB."
       />
       {isLoading && <PageState title="Loading resources…" />}
       {error && (
@@ -93,8 +89,8 @@ export default function MessagingResources() {
       <DataTable
         searchKey="name"
         searchPlaceholder="Search resources..."
-        columns={createColumns(handleActivate, handleEdit, handleDelete)}
-        data={allMessageResources ?? []}
+        columns={createColumns(handleEdit)}
+        data={messageResources ?? []}
         onAdd={() => {
           resetForm();
           setOpen(true);

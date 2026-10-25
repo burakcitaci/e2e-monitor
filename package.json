@@ -11,6 +11,8 @@
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "test:backend": "nx run backend:test",
+    "test:brokers": "nx run backend:build && node apps/backend/test/broker-resources.integration.cjs",
+    "test:csharp": "nx run backend:build && dotnet build examples/servicebus-csharp --output examples/servicebus-csharp/bin/smoke && node apps/backend/test/broker-resources.integration.cjs --messaging",
     "test:monitor": "nx run @e2e-monitor/monitor:test",
     "test:e2e": "nx run monitor-e2e:e2e",
     "lint": "nx run-many -t lint",
@@ -22,11 +24,14 @@
   },
   "packageManager": "yarn@1.22.22",
   "engines": {
-    "node": ">=20.19.0",
+    "node": ">=22.0.0",
     "yarn": ">=1.22.0"
   },
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-sns": "^3.1156.0",
+    "@aws-sdk/client-sqs": "^3.1156.0",
+    "@azure/service-bus": "^7.10.0",
     "@e2e-monitor/entities": "0.0.1",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",

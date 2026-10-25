@@ -182,6 +182,8 @@ export const messageResourcesSchema = z.preprocess(
     provider: z.enum(['aws', 'azure']),
     type: z.enum(['queue', 'topic']),
     status: z.enum(['active', 'inactive']),
+    subscriptions: z.array(z.string()).optional(),
+    brokerAddress: z.string().optional(),
   }),
 );
 

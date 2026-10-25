@@ -14,6 +14,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '../../../components/ui/sheet';
 import type { ResourceForm } from '../lib/resource-form';
 import {
@@ -55,6 +56,11 @@ export const DetailSheet = ({
           <SheetTitle>
             {editing ? 'Edit Resource' : 'Create Resource'}
           </SheetTitle>
+          <SheetDescription>
+            Creates or verifies the broker resource, then saves its MongoDB
+            record. Existing resources are reused. Subscriptions are added,
+            never removed.
+          </SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-4 mt-6">
@@ -78,6 +84,7 @@ export const DetailSheet = ({
               id="name"
               placeholder="Name"
               value={form.name}
+              disabled={editing}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
@@ -86,15 +93,17 @@ export const DetailSheet = ({
             <div>
               <Label>Provider</Label>
               <Select
+                disabled={editing}
                 value={form.provider}
                 onValueChange={(v: 'aws' | 'azure') =>
-                  setForm({ ...form, provider: v })
+                  setForm({ ...form, provider: v, subscriptions: undefined })
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="azure">Azure</SelectItem>
                   <SelectItem value="aws">AWS</SelectItem>
                 </SelectContent>
               </Select>
@@ -103,9 +112,10 @@ export const DetailSheet = ({
             <div>
               <Label>Type</Label>
               <Select
+                disabled={editing}
                 value={form.type}
                 onValueChange={(v: 'queue' | 'topic') =>
-                  setForm({ ...form, type: v })
+                  setForm({ ...form, type: v, subscriptions: undefined })
                 }
               >
                 <SelectTrigger>
@@ -118,6 +128,30 @@ export const DetailSheet = ({
               </Select>
             </div>
           </div>
+          {form.provider === 'azure' && form.type === 'topic' && (
+            <div className="grid gap-2">
+              <Label htmlFor="subscriptions">
+                Subscriptions (comma-separated)
+              </Label>
+              <Input
+                id="subscriptions"
+                placeholder="logging-service, analytics-processor"
+                value={form.subscriptions?.join(', ') ?? ''}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    subscriptions: event.target.value
+                      .split(',')
+                      .map((name) => name.trim()),
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Create the subscription your receiver listens to; a topic alone
+                does not create a subscription.
+              </p>
+            </div>
+          )}
           <Button
             disabled={saving || !form.name.trim()}
             onClick={handleSave}

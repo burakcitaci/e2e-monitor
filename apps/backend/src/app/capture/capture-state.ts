@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CaptureEventDto } from './capture-event.dto';
 
 export interface CaptureDelivery {
@@ -9,6 +9,8 @@ export interface CaptureDelivery {
 }
 
 export interface CaptureState {
+  provider?: 'azure' | 'aws';
+  destinationType?: 'topic' | 'queue';
   captureId: string;
   messageId: string;
   namespace: string;
@@ -25,6 +27,21 @@ export function applyCaptureEvent(
   state: CaptureState | undefined,
   event: CaptureEventDto,
 ): CaptureState {
+  const provider = event.provider ?? 'azure';
+  const destinationType =
+    event.destinationType ?? (provider === 'aws' ? 'queue' : 'topic');
+  if (provider === 'aws' && destinationType !== 'queue')
+    throw new BadRequestException('AWS capture supports SQS queues only.');
+  if (
+    state &&
+    ((state.provider ?? 'azure') !== provider ||
+      (state.destinationType ??
+        (state.provider === 'aws' ? 'queue' : 'topic')) !== destinationType)
+  ) {
+    throw new ConflictException(
+      'Capture provider or destination type does not match the existing message',
+    );
+  }
   if (state && state.messageId !== event.messageId) {
     throw new ConflictException(
       'Capture ID already belongs to another broker message',
@@ -34,6 +51,8 @@ export function applyCaptureEvent(
     ? structuredClone(state)
     : {
         captureId: event.captureId,
+        provider,
+        destinationType,
         messageId: event.messageId,
         namespace: event.namespace,
         destination: event.destination,
@@ -71,7 +90,10 @@ export function captureTrackingRows(id: string, state: CaptureState) {
     captureId: state.captureId,
     namespace: state.namespace,
     trackingSource: 'capture' as const,
-    emulatorType: 'azure-service-bus' as const,
+    emulatorType:
+      state.provider === 'aws'
+        ? ('sqs' as const)
+        : ('azure-service-bus' as const),
     body: state.sent?.body ?? '(waiting for publisher report)',
     sentBy: state.sent?.service ?? '(waiting for publisher report)',
     sentAt: state.sent?.occurredAt,
@@ -84,7 +106,10 @@ export function captureTrackingRows(id: string, state: CaptureState) {
   return state.deliveries.map((delivery) => ({
     ...base,
     _id: `${id}:${delivery.subscription}:${delivery.service}`,
-    queue: `${state.destination}/subscriptions/${delivery.subscription}`,
+    queue:
+      state.destinationType === 'queue' || state.provider === 'aws'
+        ? state.destination
+        : `${state.destination}/subscriptions/${delivery.subscription}`,
     receivedBy: delivery.service,
     receivedAt: delivery.receivedAt,
     completedAt: delivery.completedAt,

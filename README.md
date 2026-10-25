@@ -6,9 +6,9 @@ status, payloads, subscriber timelines, and timing statistics. Messaging Chat
 retains Gemini AI replies, draft preparation, documentation retrieval, and saved
 conversations.
 
-The platform does not connect to messaging brokers, publish or consume messages,
+The platform provisions broker resources but does not publish or consume messages,
 or settle deliveries. Those operations belong to application SDKs and examples.
-The current capture integration supports Azure Service Bus through the
+The current capture integration supports Azure Service Bus and AWS SQS through the
 [C# publisher/subscriber example](examples/servicebus-csharp/README.md).
 
 ## Workspace
@@ -73,9 +73,9 @@ docker compose up -d mongodb
 yarn dev
 ```
 
-The collector requires MongoDB; Azure Service Bus and LocalStack are optional
-example infrastructure. `yarn compose:up` starts all configured containers for
-broker examples. See `config/servicebus-config.json` for example topic names.
+The collector requires MongoDB. Resource creation also requires its configured
+broker: Azure Service Bus or LocalStack (SQS and SNS). `yarn compose:up` starts
+all configured containers. See `config/servicebus-config.json` for bootstrap entities.
 
 - Monitor: http://localhost:4200
 - API: http://localhost:3000/api/v1
@@ -104,6 +104,33 @@ Root `.env` and frontend `.env.local` are ignored by Git. Never put AI keys or
 real credentials in frontend environment variables or committed files. Default
 MongoDB credentials and capture token are for local development.
 
+## Broker resources
+
+The Resources page creates Azure Service Bus queues/topics and AWS SQS queues/SNS
+topics in the broker before upserting a matching MongoDB record. Azure topic
+subscriptions can be entered as comma-separated names. Existing entities are
+reused; retries do not create duplicate catalog rows. Broker failure leaves the
+form open and does not save a success record. If MongoDB fails after provisioning,
+the error explains that the broker entity exists and the same request can be
+retried to reconcile it. Broker and MongoDB writes are not a distributed transaction.
+
+Set `SERVICE_BUS_ADMIN_CONNECTION_STRING` for Azure management (local emulator
+uses port 5300). AWS defaults to `AWS_ENDPOINT_URL=http://localhost:4566` and
+`AWS_REGION=us-east-1`; leave the endpoint empty to use real AWS with the standard
+SDK credential chain. Configuration and credentials stay on the backend.
+After changing the Compose LocalStack services, run `docker compose up -d localstack`
+to enable SNS as well as SQS.
+The Compose file pins Service Bus emulator 2.0.0, which supports management APIs;
+the previous March 2025 image cannot provision entities at runtime.
+
+Docker configuration remains the emulator's initialization baseline. Runtime-created
+Azure entities are not written back to that JSON file and may be lost when the
+emulator restarts; save an existing resource again to recreate it. The resource
+list shows MongoDB records, with no hardcoded browser-side broker catalog. Existing
+configuration-only entities can be registered by creating the same named resource.
+Editing adds subscriptions and rechecks the broker; renaming/moving entities is
+rejected. Catalog status is not a broker health check. This does not publish or consume messages.
+
 ## Message capture
 
 `POST /api/v1/events` accepts versioned `sent`, `received`, and `completed`
@@ -111,6 +138,11 @@ reports with `Authorization: Bearer <CAPTURE_TOKEN>`. Global DTO validation reje
 unknown fields and incomplete reports. Capture IDs correlate each publication;
 namespace, destination, subscriber service, and subscription keep deliveries
 separate. Duplicate and out-of-order reports cannot undo completion.
+
+Optional `provider` (`azure` or `aws`) and `destinationType` (`topic` or `queue`)
+identify the transport; omitted values preserve legacy Azure topic behavior.
+AWS captures support SQS queues, not SNS topics. Queue receive/completion reports
+use the queue name as the delivery target in `subscription`.
 
 MongoDB stores snapshots in `CapturedMessages`. Tracking queries also include
 legacy `Messages` history; old data is not migrated or deleted. Each observed
@@ -163,7 +195,8 @@ through the same policy creation flow as the Policies page.
 
 Destination names come from configured Azure example entities and active saved
 resource metadata. This is a catalog, not live discovery or a broker health check.
-SQS metadata/drafts are supported; SQS capture ingestion is not implemented.
+SQS capture is supported by the C# example using `--provider aws --queue NAME`;
+AWS topic provisioning uses SNS, but SNS message capture is not included.
 Conversation text, catalog context, and retrieved excerpts are sent to Gemini.
 See [chat configuration and limits](docs/messaging-chat.md).
 
@@ -184,12 +217,18 @@ yarn test
 yarn verify
 yarn playwright install chromium
 yarn test:e2e
+yarn test:brokers
+yarn test:csharp
 ```
 
 `yarn verify` runs lint, type checks, unit tests, and builds. Browser tests use
 mocked collector and AI responses; they do not demonstrate real broker delivery
 or an actual Gemini response. Run the C# example with Docker for broker checks.
 The .NET example builds independently with `dotnet build examples/servicebus-csharp`.
+`yarn test:brokers` requires the local Docker brokers and MongoDB. It starts an
+isolated API on port 3017 and a temporary database, verifies actual queue/topic
+creation, Azure subscriptions, MongoDB records, and idempotent retries, then removes
+only its own test resources. It does not test message delivery or consume application subscriptions.
 
 ## Codebase graph
 

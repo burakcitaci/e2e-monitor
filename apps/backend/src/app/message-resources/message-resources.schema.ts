@@ -29,6 +29,11 @@ export class MessagingResource {
   @Prop({ required: true, enum: ResourceType })
   type!: ResourceType;
 
+  @Prop({ type: [String], default: [] })
+  subscriptions!: string[];
+
+  @Prop()
+  brokerAddress?: string;
 
   @Prop({
     type: String,
@@ -41,3 +46,7 @@ export class MessagingResource {
 
 export const MessagingResourceSchema =
   SchemaFactory.createForClass(MessagingResource);
+MessagingResourceSchema.index(
+  { provider: 1, type: 1, name: 1 },
+  { unique: true },
+);

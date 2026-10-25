@@ -3,7 +3,7 @@ name: emulator-monitor
 services:
   emulator:
     container_name: servicebus-emulator
-    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest@sha256:353913ece3d9124cebd40f4b91d00dd197846b8cf86eae9a4790698709c64a1d
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:2.0.0@sha256:a00c9626c8960f6b9be6178aa91a7ac8f1a102c0d9deda7603a1ba0ac9d9ab51
     pull_policy: always
     ports:
       - "127.0.0.1:5672:5672"
@@ -56,7 +56,7 @@ services:
     ports:
       - "127.0.0.1:4566:4566"
     environment:
-      SERVICES: sqs
+      SERVICES: sqs,sns
       DEBUG: ${DEBUG:-0}
       PERSISTENCE: "1"
       AWS_DEFAULT_REGION: us-east-1

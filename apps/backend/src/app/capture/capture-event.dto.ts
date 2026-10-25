@@ -2,6 +2,7 @@ import {
   Equals,
   IsDateString,
   IsIn,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
@@ -10,6 +11,14 @@ import {
 } from 'class-validator';
 
 export class CaptureEventDto {
+  @IsOptional()
+  @IsIn(['azure', 'aws'])
+  provider?: 'azure' | 'aws';
+
+  @IsOptional()
+  @IsIn(['topic', 'queue'])
+  destinationType?: 'topic' | 'queue';
+
   @Equals(1)
   schemaVersion!: number;
 

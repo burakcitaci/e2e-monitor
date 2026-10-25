@@ -1,16 +1,62 @@
 # C# publisher and subscriber
 
-A tiny .NET 10 console app using Azure.Messaging.ServiceBus. `Publisher.cs`
+A tiny .NET 10 console app using Azure.Messaging.ServiceBus and AWSSDK.SQS. `Publisher.cs`
 represents Backend A; `Subscriber.cs` represents Backend B. Both use
-`TopicMessaging.cs`, a small send/receive wrapper that can later become a library.
+`IMessageTransport`, implemented by `TopicMessaging.cs` (Azure queues/topics) and
+`SqsMessaging.cs` (AWS queues). Azure remains the default provider.
 
 Defaults match `config/servicebus-config.json`:
 
 - Topic: `application-events`
 - Subscription: `logging-service` (alternatively `analytics-processor`)
 
-The example uses real Azure Service Bus emulator messaging, not an in-memory bus.
-It does not create topics or subscriptions. Start the repo's containers first.
+The example uses the real Service Bus emulator or LocalStack, not an in-memory bus.
+It does not create queues, topics, or subscriptions. Create them on the monitor's
+Resources page or through Docker bootstrap configuration first.
+
+## AWS SQS and queue parameters
+
+Create an AWS queue named `orders-queue` in **Resources**, then run:
+
+```powershell
+# Terminal 1: Backend B
+dotnet run --project examples/servicebus-csharp -- subscribe `
+  --provider aws --queue orders-queue --receiver orders-consumer
+
+# Terminal 2: Backend A
+dotnet run --project examples/servicebus-csharp -- publish `
+  --provider aws --queue orders-queue --sender financing-api `
+  --body 'Hello from AWS' --count 20 --interval-ms 100
+```
+
+AWS defaults to LocalStack at `http://localhost:4566`, region `us-east-1`, and
+local `test` credentials. Override `--endpoint URL` and `--region REGION`, or
+`AWS_ENDPOINT_URL` and `AWS_REGION`. Use `--endpoint aws` for real AWS with the
+standard SDK credential chain. Process environment variables are used; root `.env`
+is not loaded. Never put real credentials in source or command-line arguments.
+
+`--queue-url URL` can replace `--queue NAME`. Environment fallbacks are
+`AWS_SQS_QUEUE_NAME`, `AWS_SQS_QUEUE_URL`, and `MESSAGING_PROVIDER`. Explicit
+`--queue` overrides the queue URL environment variable. AWS supports SQS in this
+example; SNS topics cannot be consumed directly as SQS queues.
+
+Azure queues use the same commands with `--provider azure --queue orders-queue`.
+Do not pass `--subscription` for a queue. Existing Azure topic commands remain
+unchanged. `SERVICE_BUS_QUEUE` selects an Azure queue when `--topic` is not explicit.
+
+For either provider, `subscribe --max-messages N` exits after N completed messages.
+The default remains continuous receiving until Ctrl+C. SQS uses long polling,
+reports receipt before handling, and deletes only after successful handling.
+Handler failures leave messages for redelivery after the queue visibility timeout.
+FIFO queues automatically use the sender service as message group and a fresh
+capture ID as deduplication ID.
+
+Both transports report sent/received/completed events to the monitor. SQS records
+are labeled SQS and use the queue ARN prefix as namespace. Queue delivery targets
+use the queue name in the capture contract's subscription field; topic subscriptions
+retain their real names. Capture IDs are carried in SQS message attributes or
+Azure application properties. Short-range views and historical policies can use
+these captured routes, independently of handler completion.
 
 ## Run
 
@@ -105,12 +151,13 @@ A `[capture warning]` means that report may be missing from MongoDB, even if the
 business operation succeeded. There is no transaction between broker and collector.
 Bodies are included in the send report (maximum 100,000 characters); use synthetic
 data in this example. External messages without a UUID capture ID are handled
-without reporting. Policy evaluation and a published NuGet package are not included.
+without reporting. Policy evaluation is available in the monitor; a published
+NuGet package is not included.
 
-CLI options override environment variables. Use `--topic`, `--subscription`,
+CLI options override environment variables. Use `--provider`, `--queue`, `--topic`, `--subscription`,
 `--sender`, `--receiver`, `--body`, `--count`, `--interval-ms`, `--capture-api`,
 and `--capture-token`. Run `dotnet run --project examples/servicebus-csharp -- --help`
-for the compact reference.
+for the compact reference. AWS also accepts `--queue-url`, `--endpoint`, and `--region`.
 
 Environment overrides remain available: `SERVICE_BUS_CONNECTION_STRING`,
 `SERVICE_BUS_TOPIC`, `SERVICE_BUS_SUBSCRIPTION`, `CAPTURE_SERVICE`,
@@ -125,11 +172,17 @@ your own credentials and existing topic/subscription names.
 
 ```powershell
 dotnet build examples/servicebus-csharp
+yarn test:csharp
 ```
 
 The .NET example is independent of Nx/Yarn build targets. A successful build or
 help command does not demonstrate broker connectivity; use the two processes
-above for a real send/receive check.
+above for a real send/receive check. `yarn test:csharp` builds to a separate output
+folder, runs against local Docker brokers and an isolated API/database, verifies
+publish/receive/completion and capture records, then cleans up its own resources.
+Stop any old publisher/subscriber processes before a normal build if Windows
+reports that the executable is locked.
 
 SDK reference: https://www.nuget.org/packages/Azure.Messaging.ServiceBus/7.20.2
+AWS SDK reference: https://www.nuget.org/packages/AWSSDK.SQS/4.0.100.20
 Emulator setup: https://learn.microsoft.com/azure/service-bus-messaging/test-locally-with-service-bus-emulator
