@@ -1,6 +1,6 @@
 import { IconBrandAws, IconBrandAzure } from '@tabler/icons-react';
 import { MessagingResource } from '../lib/entities';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -8,6 +8,7 @@ import { DataTableColumnHeader } from '../../../components/data-table/DataTableC
 
 export const createColumns = (
   handleEdit: (resource: MessagingResource) => void,
+  handleDelete: (resource: MessagingResource) => void,
 ): ColumnDef<MessagingResource>[] => {
   return [
     {
@@ -88,6 +89,14 @@ export const createColumns = (
             onClick={() => handleEdit(row.original)}
           >
             <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete ${row.original.name}`}
+            onClick={() => handleDelete(row.original)}
+          >
+            <Trash2 className="size-4 text-destructive" />
           </Button>
         </div>
       ),

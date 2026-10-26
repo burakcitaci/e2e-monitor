@@ -83,7 +83,7 @@ export class MessageResourcesService {
       ...current,
       ...dto,
       subscriptions,
-    });
+    }, current.subscriptions ?? []);
     const result = await this.messagingResourceModel
       .findOneAndUpdate(
         { id },
@@ -98,6 +98,11 @@ export class MessageResourcesService {
     return result;
   }
   async deleteMessageResource(id: string): Promise<MessagingResource> {
+    const current = await this.messagingResourceModel.findOne({ id }).lean().exec();
+    if (!current) {
+      throw new NotFoundException('Message resource not found');
+    }
+    await this.broker.remove(current);
     const result = await this.messagingResourceModel
       .findOneAndDelete({ id })
       .lean()

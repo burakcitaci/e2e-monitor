@@ -29,3 +29,13 @@ export const useCreateMessageResource = () => {
     },
   });
 };
+
+export const useDeleteMessageResource = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.deleteMessageResource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-resources'] });
+    },
+  });
+};

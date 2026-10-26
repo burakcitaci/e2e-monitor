@@ -7,6 +7,7 @@ import {
   useCreateMessageResource,
   useGetMessageResources,
   useUpdateMessageResource,
+  useDeleteMessageResource,
 } from './api/hooks';
 import { emptyResourceForm, resourceForm } from './lib/resource-form';
 import { toast } from 'sonner';
@@ -27,6 +28,8 @@ export default function MessagingResources() {
     useCreateMessageResource();
   const { mutateAsync: updateMessageResource, isPending: updating } =
     useUpdateMessageResource();
+  const { mutateAsync: deleteMessageResource, isPending: deleting } =
+    useDeleteMessageResource();
   const [form, setForm] = useState(emptyResourceForm);
 
   const resetForm = () => {
@@ -71,6 +74,18 @@ export default function MessagingResources() {
     setOpen(true);
   };
 
+  const handleDelete = async (resource: MessagingResource) => {
+    if (!window.confirm(`Delete ${resource.name} from the broker and MongoDB?`))
+      return;
+    try {
+      await deleteMessageResource(resource.id);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Could not delete resource',
+      );
+    }
+  };
+
   return (
     <Page>
       <PageHeader
@@ -89,7 +104,7 @@ export default function MessagingResources() {
       <DataTable
         searchKey="name"
         searchPlaceholder="Search resources..."
-        columns={createColumns(handleEdit)}
+        columns={createColumns(handleEdit, handleDelete)}
         data={messageResources ?? []}
         onAdd={() => {
           resetForm();
@@ -101,7 +116,7 @@ export default function MessagingResources() {
         setOpen={setOpen}
         editing={currentResource !== null}
         form={form}
-        saving={creating || updating}
+        saving={creating || updating || deleting}
         setForm={setForm}
         handleSave={handleSave}
       />

@@ -498,6 +498,21 @@ class ApiClient {
     }
     return response.data;
   }
+
+  async deleteMessageResource(id: string): Promise<void> {
+    const response = await this.request(
+      `/message-resources/resources/${id}`,
+      { method: 'DELETE' },
+    );
+    if (!isApiResponse(response) || !response.success) {
+      throw new ApiError(
+        500,
+        isApiResponse(response)
+          ? response.message || 'Failed to delete message resource'
+          : 'Invalid response format',
+      );
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

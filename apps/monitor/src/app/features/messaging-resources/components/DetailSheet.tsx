@@ -58,8 +58,8 @@ export const DetailSheet = ({
           </SheetTitle>
           <SheetDescription>
             Creates or verifies the broker resource, then saves its MongoDB
-            record. Existing resources are reused. Subscriptions are added,
-            never removed.
+            record. Existing resources are reused. Subscription changes and
+            deletions are synchronized with the broker before MongoDB.
           </SheetDescription>
         </SheetHeader>
 

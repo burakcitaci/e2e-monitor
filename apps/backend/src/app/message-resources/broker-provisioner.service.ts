@@ -6,8 +6,18 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ServiceBusAdministrationClient } from '@azure/service-bus';
-import { CreateQueueCommand, SQSClient } from '@aws-sdk/client-sqs';
-import { CreateTopicCommand, SNSClient } from '@aws-sdk/client-sns';
+import {
+  CreateQueueCommand,
+  DeleteQueueCommand,
+  GetQueueUrlCommand,
+  SQSClient,
+} from '@aws-sdk/client-sqs';
+import {
+  CreateTopicCommand,
+  DeleteTopicCommand,
+  ListTopicsCommand,
+  SNSClient,
+} from '@aws-sdk/client-sns';
 import { CreateMessageResourceDto } from './dto/create-message.dto';
 import { Provider, ResourceType } from './message-resources.schema';
 
@@ -51,7 +61,10 @@ export class BrokerProvisionerService implements OnModuleDestroy {
     this.sns = new SNSClient(options);
   }
 
-  async ensure(resource: CreateMessageResourceDto): Promise<string> {
+  async ensure(
+    resource: CreateMessageResourceDto,
+    previousSubscriptions: string[] = [],
+  ): Promise<string> {
     if (
       resource.subscriptions?.length &&
       (resource.provider !== Provider.AZURE ||
@@ -130,6 +143,22 @@ export class BrokerProvisionerService implements OnModuleDestroy {
           );
         }
       }
+      for (const subscription of new Set(previousSubscriptions)) {
+        if (
+          !resource.subscriptions?.includes(subscription) &&
+          (await this.azure.subscriptionExists(
+            resource.name,
+            subscription,
+            operation,
+          ))
+        ) {
+          await this.azure.deleteSubscription(
+            resource.name,
+            subscription,
+            operation,
+          );
+        }
+      }
       return `${this.azureEndpoint.replace(/\/$/, '')}/${resource.name}`;
     } catch (error) {
       // SDK errors may contain connection details: expose only the provider error code.
@@ -141,6 +170,83 @@ export class BrokerProvisionerService implements OnModuleDestroy {
             : 'UnknownError';
       throw new BadGatewayException(
         `Could not provision ${resource.provider} ${resource.type} (${code}). Check the broker endpoint, credentials and entity name. The MongoDB record was not saved; retrying is safe.`,
+      );
+    }
+  }
+
+  async remove(resource: CreateMessageResourceDto): Promise<void> {
+    try {
+      const signal = AbortSignal.timeout(15000);
+      if (resource.provider === Provider.AWS) {
+        if (resource.type === ResourceType.QUEUE) {
+          const queue = await this.sqs.send(
+            new GetQueueUrlCommand({ QueueName: resource.name }),
+            { abortSignal: signal },
+          );
+          if (!queue.QueueUrl) throw new Error('Missing queue URL');
+          await this.sqs.send(
+            new DeleteQueueCommand({ QueueUrl: queue.QueueUrl }),
+            { abortSignal: signal },
+          );
+        } else {
+          let topicArn: string | undefined;
+          let nextToken: string | undefined;
+          do {
+            const topics = await this.sns.send(
+              new ListTopicsCommand({ NextToken: nextToken }),
+              { abortSignal: signal },
+            );
+            topicArn = topics.Topics?.find((topic) =>
+              topic.TopicArn?.endsWith(`:${resource.name}`),
+            )?.TopicArn;
+            nextToken = topics.NextToken;
+          } while (!topicArn && nextToken);
+          if (!topicArn) return;
+          await this.sns.send(
+            new DeleteTopicCommand({ TopicArn: topicArn }),
+            { abortSignal: signal },
+          );
+        }
+        return;
+      }
+      const operation = { abortSignal: signal };
+      if (resource.type === ResourceType.TOPIC) {
+        for (const subscription of resource.subscriptions ?? []) {
+          if (
+            await this.azure.subscriptionExists(
+              resource.name,
+              subscription,
+              operation,
+            )
+          ) {
+            await this.azure.deleteSubscription(
+              resource.name,
+              subscription,
+              operation,
+            );
+          }
+        }
+      }
+      if (
+        resource.type === ResourceType.TOPIC
+          ? await this.azure.topicExists(resource.name, operation)
+          : await this.azure.queueExists(resource.name, operation)
+      ) {
+        if (resource.type === ResourceType.TOPIC) {
+          await this.azure.deleteTopic(resource.name, operation);
+        } else {
+          await this.azure.deleteQueue(resource.name, operation);
+        }
+      }
+    } catch (error) {
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? String(error.code)
+          : error instanceof Error
+            ? error.name
+            : 'UnknownError';
+      throw new BadGatewayException(
+        `Could not delete ${resource.provider} ${resource.type} (${code}). The MongoDB record was kept; retry the deletion.`,
       );
     }
   }
