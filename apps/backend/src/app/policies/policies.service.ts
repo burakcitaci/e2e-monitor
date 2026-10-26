@@ -94,7 +94,9 @@ export class PoliciesService {
         .lean()
         .exec();
       if (!result) throw new NotFoundException('Policy not found');
-      return this.serialize(result);
+      const serialized = this.serialize(result);
+      await this.evaluator.evaluateOne(result);
+      return serialized;
     } catch (error) {
       if ((error as { code?: number }).code === 11000) {
         throw new ConflictException('An identical policy already exists');

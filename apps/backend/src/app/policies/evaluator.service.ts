@@ -47,19 +47,29 @@ export class EvaluatorService
     if (this.running) return;
     this.running = true;
     try {
-      const [policies, captures] = await Promise.all([
-        this.policies.find().lean().exec(),
-        this.capture.allStates(),
-      ]);
+      const policies = await this.policies.find().lean().exec();
       const evaluatedAt = new Date();
       if (policies.length) {
-        await this.evaluations.insertMany(
-          policies.map((policy) => ({
+        const evaluations = await Promise.all(
+          policies.map(async (policy) => ({
             policyId: String(policy._id),
             evaluatedAt,
-            result: this.result(policy, captures, evaluatedAt),
+            result: this.result(
+              policy,
+              await this.capture.statesInRange(
+                policy.namespace,
+                policy.destination,
+                new Date(
+                  evaluatedAt.getTime() -
+                    policy.evaluationWindowMinutes * 60_000,
+                ),
+                evaluatedAt,
+              ),
+              evaluatedAt,
+            ),
           })),
         );
+        await this.evaluations.insertMany(evaluations);
       }
     } catch (error) {
       this.logger.error('Scheduled policy evaluation failed', error);

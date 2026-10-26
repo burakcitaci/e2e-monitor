@@ -23,6 +23,7 @@ export const CapturedMessageSchema = new Schema<CapturedMessage>(
   },
   { collection: 'CapturedMessages', timestamps: true },
 );
+CapturedMessageSchema.index({ 'state.namespace': 1, 'state.destination': 1, 'state.sent.occurredAt': 1 });
 
 @Injectable()
 export class CaptureService {
@@ -36,6 +37,8 @@ export class CaptureService {
       .update(
         JSON.stringify([
           ...(event.provider === 'aws' ? ['aws'] : []),
+          event.destinationType ??
+            (event.provider === 'aws' ? 'queue' : 'topic'),
           event.namespace,
           event.destination,
           event.captureId,

@@ -34,7 +34,7 @@ const DOCUMENTS: readonly KnowledgeDocument[] = [
     source: 'docs/messaging-chat.md#supported-providers',
     title: 'Supported messaging providers',
     provider: 'shared',
-    text: 'Destination metadata recognizes exactly two messaging providers: Azure Service Bus and AWS SQS. The collector directly ingests Azure Service Bus capture reports today; SQS capture is not implemented. Azure Service Bus supports queues and topics. AWS SQS supports queues only. Gemini is the AI model provider for chat, not an additional messaging provider. The supported provider count does not indicate whether either broker is currently available.',
+    text: 'Destination metadata recognizes exactly two messaging providers: Azure Service Bus and AWS SQS. AWS also exposes SNS topics through the AWS provider; an SNS subscriber uses an existing backing SQS queue. Azure Service Bus supports queues and topics. Gemini is the AI model provider for chat, not a messaging provider. Saved metadata does not prove that a broker entity is currently available.',
   },
   {
     id: 'chat-overview',
@@ -48,7 +48,7 @@ const DOCUMENTS: readonly KnowledgeDocument[] = [
     source: 'docs/messaging-chat.md#planning-modes',
     title: 'Message planning and draft review',
     provider: 'shared',
-    text: 'Structured output prepares a JSON-schema draft and validates its destination against the catalog. Tool calling can list_destinations and prepare_message. Both modes only prepare drafts; the user reviews or copies the destination and exact body. External applications own publishing. Missing provider, destination or body requires clarification. Azure Service Bus supports queues and topics. AWS SQS supports queues only.',
+    text: 'Structured output prepares a JSON-schema draft and validates its destination against the catalog. Tool calling can list_destinations and prepare_message. Both modes only prepare drafts; the user reviews or copies the destination and exact body. External applications own publishing. Missing provider, destination or body requires clarification. Azure Service Bus supports queues and topics. AWS supports SQS queues and SNS topics, with an existing SQS queue required for SNS subscription delivery.',
   },
   {
     id: 'chat-tools',
@@ -63,6 +63,13 @@ const DOCUMENTS: readonly KnowledgeDocument[] = [
     title: 'Delivery policy planning',
     provider: 'shared',
     text: 'A delivery policy matches namespace, destination, publisher service, subscription and subscriber service. Each sent message becomes pending until its deadline, then passed, late or missing. Policy status uses the required success percentage over a rolling evaluation window after the minimum sample count is reached. Chat prepares a policy draft; only the Create policy button saves it.',
+  },
+  {
+    id: 'csharp-policy-testing',
+    source: 'examples/servicebus-csharp/Program.cs#usage',
+    title: 'Testing policies with the C# example',
+    provider: 'shared',
+    text: 'Use examples/servicebus-csharp/Program.cs to test a captured delivery policy. Azure topics: start `dotnet run --project examples/servicebus-csharp -- subscribe --topic application-events --subscription logging-service --receiver orders-consumer`, then publish `dotnet run --project examples/servicebus-csharp -- publish --topic application-events --sender financing-api --body "hello"`. AWS SNS uses an existing topic and queue: subscribe with `--provider aws --topic TOPIC --queue QUEUE --receiver SERVICE`, then publish with `--provider aws --topic TOPIC --sender SERVICE --body "hello"`. AWS SQS queues use `--provider aws --queue QUEUE`. Use `--count N --interval-ms N` for repeated publishes and `--max-messages N` to stop a subscriber. Start the subscriber before publishing so the captured receive can satisfy the policy deadline.',
   },
   {
     id: 'chat-setup',

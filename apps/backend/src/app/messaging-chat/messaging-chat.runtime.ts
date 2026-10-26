@@ -220,7 +220,7 @@ export class MessagingChatRuntime {
             (resource) =>
               resource.status === 'active' &&
               (resource.provider === 'azure' ||
-                (resource.provider === 'aws' && resource.type === 'queue')),
+                resource.provider === 'aws'),
           )
           .map((resource) => ({
             provider: resource.provider,
@@ -246,6 +246,7 @@ export class MessagingChatRuntime {
       knowledge: this.knowledge.retrieve(messages.at(-1)?.content ?? ''),
       contents: messages
         .slice(messages.findIndex((message) => message.role === 'user'))
+        .slice(-12)
         .map((message) => ({
           role: message.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: message.content }],
