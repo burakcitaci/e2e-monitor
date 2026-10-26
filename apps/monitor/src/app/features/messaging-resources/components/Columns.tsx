@@ -75,11 +75,11 @@ export const createColumns = (): ColumnDef<MessagingResource>[] => {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Badge
-            variant={row.original.status === 'active' ? 'default' : 'outline'}
+            variant={row.original.status === 'active' ? 'active' : 'inactive'}
           >
             {row.original.status}
           </Badge>
-          <Badge variant="secondary">
+          <Badge variant={row.original.brokerAddress ? 'success' : 'warning'}>
             {row.original.brokerAddress ? 'Synced' : 'Unknown'}
           </Badge>
         </div>

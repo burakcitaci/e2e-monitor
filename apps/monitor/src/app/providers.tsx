@@ -4,7 +4,6 @@ import React, { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
-import { ActiveThemeProvider } from './components/common/theme';
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LoadingSpinner } from './components/ui/loading-spinner';
@@ -53,10 +52,8 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
           enableSystem
           disableTransitionOnChange
         >
-          <ActiveThemeProvider>
-            <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
-            <Toaster />
-          </ActiveThemeProvider>
+          <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+          <Toaster />
         </ThemeProvider>
         {isDev && (
           <ReactQueryDevtools

@@ -14,15 +14,21 @@ const badgeVariants = cva(
         destructive:
           'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
         outline: 'text-foreground border',
-        success: 'border-transparent bg-green-500 text-white hover:bg-green-600',
-        inactive: 'border-transparent bg-gray-500 text-white hover:bg-gray-600',
-        active: 'border-transparent bg-green-500 text-white hover:bg-green-600', // processed or available
+        success:
+          'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+        inactive:
+          'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
+        active:
+          'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+        info: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300',
+        warning:
+          'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300',
         deferred:
           'border-transparent bg-yellow-500 text-white hover:bg-yellow-600', // postponed
         scheduled:
           'border-transparent bg-blue-500 text-white hover:bg-blue-600', // scheduled for later
         'dead-lettered':
-          'border-transparent bg-red-600 text-white hover:bg-red-700', // permanently failed
+          'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300',
         expired:
           'border-transparent bg-orange-500 text-white hover:bg-orange-600', // TTL expired, waiting for completion
       },
@@ -30,11 +36,12 @@ const badgeVariants = cva(
     defaultVariants: {
       variant: 'default',
     },
-  }
+  },
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {

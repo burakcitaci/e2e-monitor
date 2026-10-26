@@ -12,6 +12,7 @@ import {
 import { emptyResourceForm, resourceForm } from './lib/resource-form';
 import { toast } from 'sonner';
 import { Page, PageHeader, PageState } from '../../components/common/Page';
+import { StatisticsCards } from '../../components/common/StatisticsCards';
 
 export default function MessagingResources() {
   const [open, setOpen] = useState(false);
@@ -31,6 +32,23 @@ export default function MessagingResources() {
   const { mutateAsync: deleteMessageResource, isPending: deleting } =
     useDeleteMessageResource();
   const [form, setForm] = useState(emptyResourceForm);
+  const resources = messageResources ?? [];
+  const statistics = [
+    { label: 'Total Resources', value: resources.length },
+    {
+      label: 'Active',
+      value: resources.filter((resource) => resource.status === 'active')
+        .length,
+    },
+    {
+      label: 'Queues',
+      value: resources.filter((resource) => resource.type === 'queue').length,
+    },
+    {
+      label: 'Topics',
+      value: resources.filter((resource) => resource.type === 'topic').length,
+    },
+  ];
 
   const resetForm = () => {
     setForm(emptyResourceForm);
@@ -89,6 +107,8 @@ export default function MessagingResources() {
         />
       )}
 
+      <StatisticsCards items={statistics} />
+
       <DataTable
         tableClassName="[&_th:last-child]:w-px [&_td:last-child]:whitespace-nowrap"
         searchKey="name"
@@ -97,7 +117,7 @@ export default function MessagingResources() {
         onEditRow={handleEdit}
         onDeleteRow={(resource) => deleteMessageResource(resource.id)}
         deleteDescription="This deletes the selected resources from the broker and MongoDB. This cannot be undone."
-        data={messageResources ?? []}
+        data={resources}
         onAdd={() => {
           resetForm();
           setOpen(true);

@@ -20,7 +20,7 @@ function SubscriberDelivery({ delivery }: { delivery: Delivery }) {
             {delivery.subscription}
           </p>
         </div>
-        <Badge variant={delivery.completionReported ? 'default' : 'outline'}>
+        <Badge variant={delivery.completionReported ? 'success' : 'info'}>
           {delivery.completionReported ? 'Complete' : 'Receipt observed'}
         </Badge>
       </div>

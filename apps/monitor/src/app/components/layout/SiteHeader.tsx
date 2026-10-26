@@ -2,7 +2,6 @@ import { useLocation } from 'react-router';
 import { Separator } from '../ui/separator';
 import { SidebarTrigger } from '../ui/sidebar';
 import { ModeToggle } from '../common/mode-toggle';
-import { ThemeSelector } from '../common/ThemeSelector';
 import { pageTitle } from '../../lib/navigation';
 
 export function SiteHeader() {
@@ -22,7 +21,6 @@ export function SiteHeader() {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <ThemeSelector />
           <ModeToggle />
         </div>
       </div>

@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 import type { TrackingMessage } from '@e2e-monitor/entities';
 import { DataTableColumnHeader } from '../../../components/data-table';
-import { Badge } from '../../../components/ui/badge';
+import { Badge, type BadgeProps } from '../../../components/ui/badge';
 import type { Option } from '../../../types/data-table';
 import { MessageActions } from './MessageActions';
 import {
@@ -14,6 +14,17 @@ import {
 const MessageActionsCell = ({ row }: { row: Row<TrackingMessage> }) => (
   <MessageActions message={row.original} />
 );
+
+const statusVariants: Record<string, BadgeProps['variant']> = {
+  completed: 'success',
+  received: 'success',
+  sent: 'info',
+  processing: 'info',
+  pending: 'warning',
+  abandon: 'warning',
+  defer: 'warning',
+  deadletter: 'dead-lettered',
+};
 type Filter = (
   row: Row<TrackingMessage>,
   id: string,
@@ -88,15 +99,7 @@ export const createColumns = (
     cell: ({ row }) => {
       const status = messageStatus(row.original);
       return (
-        <Badge
-          variant={
-            status === 'completed'
-              ? 'default'
-              : status === 'deadletter'
-                ? 'destructive'
-                : 'outline'
-          }
-        >
+        <Badge variant={statusVariants[status] ?? 'outline'}>
           {messageStatusLabels[status] ?? status}
         </Badge>
       );

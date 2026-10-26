@@ -1,10 +1,10 @@
 import React from 'react';
 import { PolicyTable } from './components/PolicyTable';
 import { CreatePolicySheet } from './components/CreatePolicySheet';
-import { Button } from '../../components/ui/button';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Page, PageHeader, PageState } from '../../components/common/Page';
+import { StatisticsCards } from '../../components/common/StatisticsCards';
 import {
   useCreatePolicy,
   useDeletePolicy,
@@ -23,6 +23,25 @@ export default function PoliciesPage() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Policy | null>(null);
   const [form, setForm] = React.useState(emptyPolicyForm);
+  const statistics = [
+    { label: 'Total Policies', value: policies.length },
+    {
+      label: 'Enabled',
+      value: policies.filter((policy) => policy.enabled).length,
+    },
+    {
+      label: 'Passing',
+      value: policies.filter(
+        (policy) => policy.latestEvaluation?.status === 'pass',
+      ).length,
+    },
+    {
+      label: 'Failing',
+      value: policies.filter(
+        (policy) => policy.latestEvaluation?.status === 'fail',
+      ).length,
+    },
+  ];
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
@@ -47,9 +66,6 @@ export default function PoliciesPage() {
       <PageHeader
         title="Policies"
         description="Define delivery-time expectations for captured backend messages."
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>Create policy</Button>
-        }
       />
       {isLoading && <PageState title="Loading policies…" />}
       {error && (
@@ -59,6 +75,7 @@ export default function PoliciesPage() {
           retry={() => void refetch()}
         />
       )}
+      <StatisticsCards items={statistics} />
       <CreatePolicySheet
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -71,6 +88,11 @@ export default function PoliciesPage() {
         }}
       />
       <PolicyTable
+        onAdd={() => {
+          setEditing(null);
+          setForm(emptyPolicyForm);
+          setCreateOpen(true);
+        }}
         onDeleteRow={(policy) => deletePolicy.mutateAsync(policy._id)}
         policies={policies}
         onOpen={(id) => navigate(`/policies/${encodeURIComponent(id)}`)}
