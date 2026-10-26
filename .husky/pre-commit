@@ -17,6 +17,6 @@ graphify update .
 # - --no-label skips LLM-based community naming, so the hook stays
 #   offline and free. Communities show up as "Community N".
 # - Run `graphify label` manually when you want readable names.
-# - For very large graphs (> ~5000 nodes) or CI, also add --no-viz
-#   to skip generating the visualization.
-graphify cluster-only . --no-label
+# - --no-viz avoids regenerating graph.html on every commit; use
+#   `graphify cluster-only . --no-label` when you explicitly need the visual.
+graphify cluster-only . --no-label --no-viz

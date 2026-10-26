@@ -241,8 +241,9 @@ Use Graphify once to orient a coherent task, then reuse the findings and read
 only the relevant source sections. Query again for new dependency questions,
 not before every edit. Start with exact symbols and a small output budget.
 
-Husky runs `graphify . --code-only` before every commit and blocks the commit if
-indexing fails. Install Graphify with `uv tool install graphifyy`; `yarn install`
+Husky runs an incremental, code-only Graphify update before every commit and
+blocks the commit if indexing fails. It skips generated output and does not
+regenerate the HTML visualization during commits. Install Graphify with `uv tool install graphifyy`; `yarn install`
 activates the hooks through the `prepare` script. The hook performs local code
 analysis without LLM extraction tokens. Generated graph output stays ignored.
 Husky replaces the native hook path, so the old post-commit rebuild is inactive.
