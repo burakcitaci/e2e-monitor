@@ -109,6 +109,7 @@ export type PolicyEvaluation = z.infer<typeof policyEvaluationSchema>;
 export const policySchema = z.object({
   _id: z.string(),
   name: z.string(),
+  provider: z.enum(['azure', 'aws']).default('azure'),
   namespace: z.string(),
   sourceService: z.string(),
   destinationService: z.string(),

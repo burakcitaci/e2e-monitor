@@ -9,6 +9,7 @@ import { usePolicyDetail } from '../policies/api/hooks';
 import { PolicyStatusBadge } from '../policies/components/PolicyStatusBadge';
 import { PolicyHistoryControls } from './components/PolicyHistoryControls';
 import { policyTimeRangeLabel } from './lib/time-ranges';
+import { PolicyTestCard } from './components/PolicyTestCard';
 
 export default function PolicyDetail() {
   const { id = '' } = useParams();
@@ -60,6 +61,7 @@ export default function PolicyDetail() {
         description={
           <>
             {policy.sourceService} → {policy.destinationService} ·{' '}
+            {policy.provider.toUpperCase()} ·{' '}
             {policy.destination}/subscriptions/{policy.subscription}
           </>
         }
@@ -102,10 +104,11 @@ export default function PolicyDetail() {
             from={analysis.from}
             to={analysis.to}
           />
+          <PolicyTestCard policy={policy} />
           <PolicyEvidence policy={policy} evaluation={analysis} />
         </>
       ) : (
-        <section className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+        <section className="rounded-sm border border-dashed p-6 text-center text-sm text-muted-foreground">
           The automatic evaluator has not produced a snapshot yet. This page
           refreshes every 30 seconds.
         </section>

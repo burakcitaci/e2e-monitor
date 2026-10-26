@@ -18,7 +18,8 @@ export class PolicyHistoryQueryDto {
 
 export class CreatePolicyDto {
   @IsString() name!: string;
-  @IsString() namespace!: string;
+  @IsIn(['azure', 'aws']) provider!: 'azure' | 'aws';
+  @IsOptional() @IsString() namespace?: string;
   @IsString() sourceService!: string;
   @IsString() destinationService!: string;
   @IsString() destination!: string;
@@ -45,6 +46,7 @@ export class CreatePolicyDto {
 
 export class UpdatePolicyDto {
   @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsIn(['azure', 'aws']) provider?: 'azure' | 'aws';
   @IsOptional() @IsString() namespace?: string;
   @IsOptional() @IsString() sourceService?: string;
   @IsOptional() @IsString() destinationService?: string;

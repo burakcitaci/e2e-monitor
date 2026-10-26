@@ -9,7 +9,7 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   const title = pageTitle(pathname);
   return (
-    <header className="relative flex h-(--header-height) shrink-0 items-center border-b">
+    <header className="fixed inset-x-0 top-0 z-40 flex h-(--header-height) items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:left-(--sidebar-width) md:peer-data-[state=collapsed]:left-(--sidebar-width-icon)">
       <div className="flex w-full items-center px-4 lg:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />

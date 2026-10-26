@@ -15,12 +15,16 @@ export default function MessagingChatPage() {
 
 export function MessagingChatContent({
   chat,
+  compact = false,
 }: {
   chat: ReturnType<typeof useConversation>;
+  compact?: boolean;
 }) {
   const status = useChatStatus();
   return (
-    <section className="mx-auto w-full max-w-4xl space-y-5 p-4">
+    <section
+      className={`mx-auto w-full max-w-4xl ${compact ? 'space-y-3 p-3 [&>header]:static [&>header]:border-0 [&>header]:py-0' : 'space-y-5 p-4'}`}
+    >
       <PageHeader
         title="Messaging Chat"
         description="Ask messaging questions or prepare message and policy drafts."

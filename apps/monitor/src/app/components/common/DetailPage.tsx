@@ -15,9 +15,9 @@ export function DetailStat({
   note?: string;
 }) {
   return (
-    <section aria-label={label} className="rounded-xl border bg-card p-5">
+    <section aria-label={label} className="rounded-sm border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {note && <p className="mt-2 text-xs text-muted-foreground">{note}</p>}
     </section>
   );

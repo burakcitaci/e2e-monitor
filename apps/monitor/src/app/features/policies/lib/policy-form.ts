@@ -1,8 +1,19 @@
 import type { Policy } from '../../../lib/schemas';
 
-export const emptyPolicyForm = {
+export const emptyPolicyForm: {
+  name: string;
+  provider: 'azure' | 'aws';
+  sourceService: string;
+  destinationService: string;
+  destination: string;
+  subscription: string;
+  thresholdSeconds: string;
+  requiredSuccessPercentage: string;
+  evaluationWindowMinutes: string;
+  minimumSampleCount: string;
+} = {
   name: '',
-  namespace: 'local',
+  provider: 'azure',
   sourceService: '',
   destinationService: '',
   destination: '',
@@ -19,6 +30,7 @@ export function policyFromForm(
 ): Omit<Policy, '_id' | 'effectiveFrom' | 'latestEvaluation'> {
   return {
     ...form,
+    namespace: '',
     thresholdSeconds: Number(form.thresholdSeconds),
     requiredSuccessPercentage: Number(form.requiredSuccessPercentage),
     evaluationWindowMinutes: Number(form.evaluationWindowMinutes),

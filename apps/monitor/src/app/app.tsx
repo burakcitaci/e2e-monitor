@@ -33,7 +33,7 @@ export function App() {
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-(--header-height)">
           <Routes>
             <Route path="/" element={<MessagesPage />} />
             <Route path="/messages/:id" element={<MessageDetailPage />} />

@@ -11,6 +11,7 @@ import { EvaluatorService } from './evaluator.service';
 
 const policyIdentity = (policy: CreatePolicyDto) =>
   [
+    policy.provider ?? 'azure',
     policy.namespace,
     policy.sourceService,
     policy.destinationService,
@@ -25,7 +26,8 @@ const policyIdentity = (policy: CreatePolicyDto) =>
     .join('|');
 
 const policyContract = (policy: CreatePolicyDto) => ({
-  namespace: policy.namespace.trim(),
+  provider: policy.provider ?? 'azure',
+  namespace: policy.namespace?.trim() ?? '',
   sourceService: policy.sourceService.trim(),
   destinationService: policy.destinationService.trim(),
   destination: policy.destination.trim(),
@@ -83,12 +85,22 @@ export class PoliciesService {
   async update(id: string, dto: UpdatePolicyDto) {
     const existing = await this.model.findById(id).lean().exec();
     if (!existing) throw new NotFoundException('Policy not found');
-    const merged = { ...existing, ...dto } as unknown as CreatePolicyDto;
+    const merged = {
+      ...existing,
+      provider: existing.provider ?? 'azure',
+      namespace: existing.namespace ?? '',
+      ...dto,
+    } as unknown as CreatePolicyDto;
     try {
       const result = await this.model
         .findByIdAndUpdate(
           id,
-          { ...dto, identity: policyIdentity(merged) },
+          {
+            ...dto,
+            provider: merged.provider,
+            namespace: merged.namespace,
+            identity: policyIdentity(merged),
+          },
           { new: true, runValidators: true },
         )
         .lean()

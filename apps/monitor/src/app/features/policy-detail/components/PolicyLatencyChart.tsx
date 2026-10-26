@@ -93,7 +93,7 @@ export function PolicyLatencyChart({
   return (
     <section
       aria-labelledby="delivery-latency-title"
-      className="min-w-0 overflow-hidden rounded-2xl border bg-card text-card-foreground"
+      className="min-w-0 overflow-hidden rounded-sm border bg-card text-card-foreground"
     >
       <div className="flex flex-col border-b lg:flex-row">
         <div className="flex-1 space-y-1 px-6 py-5">

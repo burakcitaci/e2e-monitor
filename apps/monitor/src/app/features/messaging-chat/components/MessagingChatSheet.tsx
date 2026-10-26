@@ -22,7 +22,7 @@ export default function MessagingChatSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="h-dvh w-full overflow-y-auto p-2 pt-8 sm:max-w-xl"
+        className="h-dvh w-full overflow-y-auto py-1 pt-3 sm:max-w-xl"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           onReturnFocus();
@@ -33,7 +33,7 @@ export default function MessagingChatSheet({
           Prepare and review an Azure or AWS message without leaving the
           monitor.
         </SheetDescription>
-        <MessagingChatContent chat={chat} />
+        <MessagingChatContent chat={chat} compact />
       </SheetContent>
     </Sheet>
   );

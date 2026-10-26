@@ -83,6 +83,49 @@ class ApiClient {
     return (response as ApiResponse<Policy>).data;
   }
 
+  async updatePolicy(id: string, policy: Partial<Policy>) {
+    const {
+      name,
+      provider,
+      namespace,
+      sourceService,
+      destinationService,
+      destination,
+      subscription,
+      thresholdSeconds,
+      requiredSuccessPercentage,
+      evaluationWindowMinutes,
+      minimumSampleCount,
+      enabled,
+    } = policy;
+    const response = await this.request(
+      `/policies/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name,
+          provider,
+          namespace,
+          sourceService,
+          destinationService,
+          destination,
+          subscription,
+          thresholdSeconds,
+          requiredSuccessPercentage,
+          evaluationWindowMinutes,
+          minimumSampleCount,
+          enabled,
+        }),
+      },
+      policyResponseSchema,
+    );
+    return (response as ApiResponse<Policy>).data;
+  }
+
+  async deletePolicy(id: string) {
+    await this.request(`/policies/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
   async getPolicy(id: string, minutes?: number) {
     const response = await this.request(
       `/policies/${encodeURIComponent(id)}${minutes ? `?minutes=${minutes}` : ''}`,

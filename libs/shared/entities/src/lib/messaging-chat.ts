@@ -14,6 +14,7 @@ export interface MessageDraft {
 
 export interface PolicyDraft {
   name: string;
+  provider: 'azure' | 'aws';
   namespace: string;
   sourceService: string;
   destinationService: string;

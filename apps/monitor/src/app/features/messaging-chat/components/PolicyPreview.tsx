@@ -50,7 +50,15 @@ export function PolicyPreview({
         <div className="flex gap-2">
           <Button
             disabled={pending || saving}
-            onClick={() => create({ ...draft, enabled: true })}
+            onClick={() =>
+              create({
+                ...draft,
+                provider:
+                  (draft as PolicyDraft & { provider?: 'azure' | 'aws' })
+                    .provider ?? 'azure',
+                enabled: true,
+              })
+            }
           >
             {saving ? 'Creating…' : 'Create policy'}
           </Button>

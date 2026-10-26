@@ -5,24 +5,30 @@ import { Button } from '../../components/ui/button';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Page, PageHeader, PageState } from '../../components/common/Page';
-import { useCreatePolicy, usePolicies } from './api/hooks';
+import { useCreatePolicy, useDeletePolicy, usePolicies, useUpdatePolicy } from './api/hooks';
 import { emptyPolicyForm, policyFromForm } from './lib/policy-form';
+import type { Policy } from '../../lib/schemas';
 
 export default function PoliciesPage() {
   const navigate = useNavigate();
   const { data: policies = [], isLoading, error, refetch } = usePolicies();
   const createPolicy = useCreatePolicy();
+  const updatePolicy = useUpdatePolicy();
+  const deletePolicy = useDeletePolicy();
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Policy | null>(null);
   const [form, setForm] = React.useState(emptyPolicyForm);
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      await createPolicy.mutateAsync(policyFromForm(form));
+      if (editing) await updatePolicy.mutateAsync({ id: editing._id, policy: policyFromForm(form) });
+      else await createPolicy.mutateAsync(policyFromForm(form));
       setForm(emptyPolicyForm);
+      setEditing(null);
       return true;
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not create policy',
+        error instanceof Error ? error.message : 'Could not save policy',
       );
       return false;
     }
@@ -49,7 +55,8 @@ export default function PoliciesPage() {
         onOpenChange={setCreateOpen}
         form={form}
         setForm={setForm}
-        pending={createPolicy.isPending}
+        editing={editing !== null}
+        pending={createPolicy.isPending || updatePolicy.isPending}
         onSubmit={async (event) => {
           if (await create(event)) setCreateOpen(false);
         }}
@@ -57,6 +64,8 @@ export default function PoliciesPage() {
       <PolicyTable
         policies={policies}
         onOpen={(id) => navigate(`/policies/${encodeURIComponent(id)}`)}
+        onEdit={(policy) => { setEditing(policy); setForm({ ...policy, thresholdSeconds: String(policy.thresholdSeconds), requiredSuccessPercentage: String(policy.requiredSuccessPercentage), evaluationWindowMinutes: String(policy.evaluationWindowMinutes), minimumSampleCount: String(policy.minimumSampleCount) }); setCreateOpen(true); }}
+        onDelete={async (policy) => { if (!window.confirm(`Delete policy ${policy.name}?`)) return; try { await deletePolicy.mutateAsync(policy._id); } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not delete policy'); } }}
       />
     </Page>
   );

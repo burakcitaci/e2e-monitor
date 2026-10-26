@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '../../../components/data-table/DataTableColumnHeader';
+import { Badge } from '../../../components/ui/badge';
 
 export const createColumns = (
   handleEdit: (resource: MessagingResource) => void,
@@ -76,7 +77,16 @@ export const createColumns = (
           { label: 'Inactive', value: 'inactive' },
         ],
       },
-      cell: ({ row }) => <div>{row.original.status}</div>,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Badge variant={row.original.status === 'active' ? 'default' : 'outline'}>
+            {row.original.status}
+          </Badge>
+          <Badge variant="secondary">
+            {row.original.brokerAddress ? 'Synced' : 'Unknown'}
+          </Badge>
+        </div>
+      ),
     },
     {
       id: 'actions', // 👈 better than accessorKey for non-data columns

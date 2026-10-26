@@ -26,6 +26,7 @@ export const replySchema = z
     policyDraft: z
       .object({
         name: z.string().min(1).max(120),
+        provider: z.enum(['azure', 'aws']),
         namespace: z.string().min(1).max(260),
         sourceService: z.string().min(1).max(120),
         destinationService: z.string().min(1).max(120),
@@ -82,6 +83,7 @@ export const outputFormat = {
             additionalProperties: false,
             required: [
               'name',
+              'provider',
               'namespace',
               'sourceService',
               'destinationService',
@@ -94,6 +96,7 @@ export const outputFormat = {
             ],
             properties: {
               name: { type: 'string' },
+              provider: { type: 'string', enum: ['azure', 'aws'] },
               namespace: { type: 'string' },
               sourceService: { type: 'string' },
               destinationService: { type: 'string' },

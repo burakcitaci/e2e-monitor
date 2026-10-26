@@ -6,13 +6,20 @@ import {
 } from '../../../components/data-table';
 import { PolicyStatusBadge } from './PolicyStatusBadge';
 import type { Policy } from '../../../lib/schemas';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Pencil, Trash2 } from 'lucide-react';
 
 export function PolicyTable({
   policies,
   onOpen,
+  onEdit,
+  onDelete,
 }: {
   policies: Policy[];
   onOpen: (id: string) => void;
+  onEdit: (policy: Policy) => void;
+  onDelete: (policy: Policy) => void;
 }) {
   const columns = React.useMemo<ColumnDef<Policy>[]>(
     () => [
@@ -24,6 +31,11 @@ export function PolicyTable({
         cell: ({ row }) => (
           <span className="font-medium">{row.original.name}</span>
         ),
+      },
+      {
+        accessorKey: 'provider',
+        header: 'Provider',
+        cell: ({ row }) => <Badge variant="outline">{row.original.provider}</Badge>,
       },
       {
         id: 'route',
@@ -67,6 +79,15 @@ export function PolicyTable({
             {row.original.requiredSuccessPercentage}% within{' '}
             {row.original.thresholdSeconds}s
           </span>
+        ),
+      },
+      {
+        id: 'actions',
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            <Button variant="ghost" size="icon" aria-label={`Edit ${row.original.name}`} onClick={(event) => { event.stopPropagation(); onEdit(row.original); }}><Pencil className="size-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label={`Delete ${row.original.name}`} onClick={(event) => { event.stopPropagation(); onDelete(row.original); }}><Trash2 className="size-4 text-destructive" /></Button>
+          </div>
         ),
       },
       {

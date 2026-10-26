@@ -36,3 +36,20 @@ export function useCreatePolicy() {
       queryClient.invalidateQueries({ queryKey: policyKeys.all }),
   });
 }
+
+export function useUpdatePolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, policy }: { id: string; policy: Partial<Policy> }) =>
+      apiClient.updatePolicy(id, policy),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: policyKeys.all }),
+  });
+}
+
+export function useDeletePolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.deletePolicy(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: policyKeys.all }),
+  });
+}

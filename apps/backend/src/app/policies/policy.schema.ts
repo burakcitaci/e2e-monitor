@@ -4,7 +4,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 export class Policy {
   @Prop({ unique: true, sparse: true, select: false }) identity?: string;
   @Prop({ required: true, trim: true }) name!: string;
-  @Prop({ required: true, trim: true }) namespace!: string;
+  @Prop({ required: true, enum: ['azure', 'aws'], default: 'azure' }) provider!: 'azure' | 'aws';
+  @Prop({ trim: true, default: '' }) namespace!: string;
   @Prop({ required: true, trim: true }) sourceService!: string;
   @Prop({ required: true, trim: true }) destinationService!: string;
   @Prop({ required: true, trim: true }) destination!: string;

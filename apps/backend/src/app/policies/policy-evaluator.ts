@@ -3,7 +3,8 @@ import { CaptureState } from '../capture/capture-state';
 export type PolicyOutcome = 'pending' | 'passed' | 'late' | 'missing';
 
 export interface EvaluationPolicy {
-  namespace: string;
+  provider?: 'azure' | 'aws';
+  namespace?: string;
   destination: string;
   subscription: string;
   sourceService: string;
@@ -28,7 +29,8 @@ export function evaluatePolicy(
   const messages = captures.flatMap(({ id, state }) => {
     if (
       !state.sent ||
-      state.namespace !== policy.namespace ||
+      (policy.provider && (state.provider ?? 'azure') !== policy.provider) ||
+      (policy.namespace && state.namespace !== policy.namespace) ||
       state.destination !== policy.destination ||
       state.sent.service !== policy.sourceService ||
       !Number.isFinite(Date.parse(state.sent.occurredAt)) ||

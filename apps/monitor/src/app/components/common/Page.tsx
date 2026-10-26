@@ -14,7 +14,7 @@ export function Page({
   return (
     <div
       className={cn(
-        'w-full min-w-0 space-y-6 p-4 text-sm md:p-6',
+        'relative w-full min-w-0 space-y-6 px-4 pb-4 pt-0 text-sm md:px-6 md:pb-6',
         contained && 'mx-auto max-w-7xl',
       )}
     >
@@ -35,7 +35,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header className="flex flex-wrap items-start justify-between pt-4 gap-4">
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
@@ -67,7 +67,7 @@ export function PageSection({
   return (
     <section
       aria-labelledby={titleId}
-      className="min-w-0 space-y-4 rounded-xl border bg-card p-5"
+      className="min-w-0 space-y-3 rounded-sm border bg-card p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
@@ -115,7 +115,7 @@ export function PageState({
   return (
     <div
       role={retry ? 'alert' : 'status'}
-      className="space-y-3 rounded-xl border bg-card p-5"
+      className="space-y-3 rounded-sm border bg-card p-4"
     >
       <h2 className="text-base font-semibold">{title}</h2>
       {description && (

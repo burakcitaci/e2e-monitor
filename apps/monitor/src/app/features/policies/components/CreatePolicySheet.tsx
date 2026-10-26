@@ -17,6 +17,7 @@ export function CreatePolicySheet({
   setForm,
   onSubmit,
   pending,
+  editing = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,10 +25,10 @@ export function CreatePolicySheet({
   setForm: React.Dispatch<React.SetStateAction<PolicyForm>>;
   onSubmit: (event: React.FormEvent) => void;
   pending: boolean;
+  editing?: boolean;
 }) {
   const textFields = [
     ['name', 'Policy name'],
-    ['namespace', 'Namespace'],
     ['sourceService', 'Publisher service'],
     ['destinationService', 'Subscriber service'],
     ['destination', 'Topic or queue'],
@@ -43,7 +44,7 @@ export function CreatePolicySheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>Create policy</SheetTitle>
+          <SheetTitle>{editing ? 'Edit policy' : 'Create policy'}</SheetTitle>
           <SheetDescription>
             A matching publish creates an obligation for this subscriber to
             receive the message before the deadline.
@@ -53,6 +54,17 @@ export function CreatePolicySheet({
           onSubmit={onSubmit}
           className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2"
         >
+          <label className="block min-w-0 text-sm font-medium">
+            Provider
+            <select
+              value={form.provider}
+              onChange={(e) => setForm({ ...form, provider: e.target.value as 'azure' | 'aws' })}
+              className="mt-1 h-10 w-full rounded border bg-background px-3 py-2 font-normal"
+            >
+              <option value="azure">Azure Service Bus</option>
+              <option value="aws">AWS</option>
+            </select>
+          </label>
           {textFields.map(([field, label]) => (
             <label key={field} className="block min-w-0 text-sm font-medium">
               {label}
@@ -84,7 +96,7 @@ export function CreatePolicySheet({
             disabled={pending}
             className="col-span-full mt-1 w-full"
           >
-            {pending ? 'Creating…' : 'Create policy'}
+            {pending ? 'Saving…' : editing ? 'Save changes' : 'Create policy'}
           </Button>
         </form>
       </SheetContent>
