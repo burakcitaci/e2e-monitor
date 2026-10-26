@@ -5,6 +5,9 @@
 # add it explicitly. Without this the hook would fail silently there.
 export PATH="$HOME/.local/bin:$PATH"
 
+# Check only staged, agent-authored files before running the graph refresh.
+sh "$(dirname "$0")/check-staged-file-size" || exit 1
+
 # Re-extract only the code files that changed since the last run.
 # - Incremental, so it stays fast enough for a commit hook.
 # - Uses local tree-sitter AST parsing: no LLM, no API calls, no cost.

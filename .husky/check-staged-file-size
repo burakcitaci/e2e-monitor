@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Keep agent-authored source files small enough to review and reason about.
+# Tokens are intentionally estimated as bytes / 4, so 5,000 tokens = 20,000 bytes.
+max_bytes=20000
+marker=$(mktemp "${TMPDIR:-/tmp}/e2e-monitor-size.XXXXXX") || exit 1
+trap 'rm -f "$marker"' EXIT
+
+is_ignored() {
+  case "$1" in
+    yarn.lock|package-lock.json|npm-shrinkwrap.json|pnpm-lock.yaml|bun.lockb|*.lock|\
+    graphify-out/*|node_modules/*|dist/*|coverage/*|**/dist/*|**/coverage/*|\
+    **/generated/*|**/codegen/*|**/generated.*|**/*.generated.*|**/*.gen.*|\
+    *.generated.*|*.gen.*|*.map|*.min.js|*.min.css)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+git diff --cached --name-only --diff-filter=ACMR -z |
+  while IFS= read -r -d '' file; do
+    is_ignored "$file" && continue
+
+    bytes=$(git show ":$file" | wc -c | tr -d '[:space:]') || exit 1
+    if [ "$bytes" -gt "$max_bytes" ]; then
+      tokens=$(( (bytes + 3) / 4 ))
+      printf '%s\n' "ERROR: staged file exceeds the 5,000-token limit: $file ($tokens estimated tokens; $bytes bytes)." >&2
+      printf '%s\n' "Split it before committing: extract cohesive components/functions into focused files, move shared types/helpers into modules, and keep each staged file below 20,000 bytes." >&2
+      : > "$marker"
+    fi
+  done
+
+[ ! -s "$marker" ]
