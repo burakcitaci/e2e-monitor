@@ -19,7 +19,7 @@ public sealed record CaptureEvent(
     string? DestinationType = null);
 
 // Best-effort reporting. Never turn telemetry failure into message redelivery.
-public sealed class CaptureSink(HttpClient http, string token)
+public sealed class CaptureSink(HttpClient http, string token, bool strict = false)
 {
     public async Task ReportAsync(CaptureEvent capture)
     {
@@ -38,6 +38,7 @@ public sealed class CaptureSink(HttpClient http, string token)
         }
         catch (Exception error) when (error is HttpRequestException or OperationCanceledException)
         {
+            if (strict) throw;
             Console.Error.WriteLine($"[capture warning] {capture.Type} was not persisted: {error.Message}");
         }
     }

@@ -81,7 +81,11 @@ try
     {
         BaseAddress = new Uri(options.Value("capture-api", "CAPTURE_API_URL", "http://localhost:3000/api/v1/").TrimEnd('/') + "/")
     };
-    var sink = new CaptureSink(http, options.Value("capture-token", "CAPTURE_TOKEN", "local-capture-token"));
+    var sink = new CaptureSink(
+        http,
+        options.Value("capture-token", "CAPTURE_TOKEN", "local-capture-token"),
+        options.Flag("strict-capture") ||
+            string.Equals(Environment.GetEnvironmentVariable("CAPTURE_STRICT"), "true", StringComparison.OrdinalIgnoreCase));
     var service = command == "publish"
         ? options.Value("sender", "CAPTURE_SERVICE", "financing-api")
         : options.Value("receiver", "CAPTURE_SERVICE", "orders-consumer");
@@ -156,7 +160,7 @@ static void PrintUsage()
     Console.WriteLine("         subscribe --provider aws --topic NAME_OR_ARN --queue NAME [--receiver SERVICE]");
     Console.WriteLine("SNS subscribe binds an existing SQS queue; --subscription NAME is an alias for --queue NAME.");
     Console.WriteLine("Azure queues: use --provider azure --queue NAME (no subscription).");
-    Console.WriteLine("Common options: --provider azure|aws --capture-api URL --capture-token TOKEN");
+    Console.WriteLine("Common options: --provider azure|aws --capture-api URL --capture-token TOKEN [--strict-capture true]");
     Console.WriteLine("AWS options: --queue-url URL (instead of --queue), --endpoint URL|aws, --region REGION");
     Console.WriteLine("LocalStack defaults to http://localhost:4566. Use --endpoint aws for real AWS credentials/region resolution.");
     Console.WriteLine("Subscribe: --max-messages N stops after N completed deliveries; default is continuous.");
@@ -198,7 +202,7 @@ sealed class CommandLine
     private static readonly HashSet<string> Known =
     [
         "topic", "subscription", "sender", "receiver", "body", "count",
-        "interval-ms", "capture-api", "capture-token", "provider", "queue", "queue-url", "endpoint", "region", "max-messages"
+        "interval-ms", "capture-api", "capture-token", "strict-capture", "provider", "queue", "queue-url", "endpoint", "region", "max-messages"
     ];
     private readonly Dictionary<string, string> values = new(StringComparer.OrdinalIgnoreCase);
     public List<string> Positionals { get; } = [];
@@ -235,6 +239,8 @@ sealed class CommandLine
     }
 
     public string? Optional(string name) => values.GetValueOrDefault(name);
+    public bool Flag(string name) => Optional(name) is { } value &&
+        (!bool.TryParse(value, out var enabled) || enabled);
     public string Value(string name, string environmentName, string fallback) =>
         Optional(name) ?? (Environment.GetEnvironmentVariable(environmentName) is { } value && !string.IsNullOrWhiteSpace(value) ? value : fallback);
     public int PositiveInt(string name, int fallback) => ParseInt(name, fallback, 1);
