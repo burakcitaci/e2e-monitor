@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '../DataTable';
 
@@ -48,7 +48,7 @@ describe('DataTable', () => {
         data={mockData}
         searchKey="name"
         searchPlaceholder="Search items..."
-      />
+      />,
     );
 
     expect(screen.getByText('Item 1')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('DataTable', () => {
         data={[]}
         searchKey="name"
         searchPlaceholder="Search items..."
-      />
+      />,
     );
 
     expect(screen.getByText('No results.')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('DataTable', () => {
         data={mockData}
         searchKey="name"
         searchPlaceholder="Search items..."
-      />
+      />,
     );
 
     const searchInput = screen.getByPlaceholderText('Search items...');
@@ -104,13 +104,95 @@ describe('DataTable', () => {
         data={largeData}
         searchKey="name"
         searchPlaceholder="Search items..."
-      />
+      />,
     );
 
     // Check for pagination text or next/previous buttons
     const paginationText = screen.queryByText(/Page \d+ of \d+/);
     const nextButton = screen.queryByRole('button', { name: /next/i });
-    
+
     expect(paginationText || nextButton).toBeTruthy();
   });
+});
+it('selects rows without opening them and clears the selection', async () => {
+  const user = userEvent.setup();
+  const onRowClick = vi.fn();
+  render(
+    <DataTable columns={mockColumns} data={mockData} onRowClick={onRowClick} />,
+  );
+  await user.click(screen.getByRole('checkbox', { name: 'Select row 1' }));
+  expect(onRowClick).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('checkbox', { name: 'Select all rows on this page' }),
+  ).toBePartiallyChecked();
+  expect(
+    screen.getByRole('toolbar', { name: 'Selected row actions' }),
+  ).toHaveTextContent('1 selected');
+  await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+  expect(
+    screen.queryByRole('toolbar', { name: 'Selected row actions' }),
+  ).not.toBeInTheDocument();
+});
+
+it('selects only the current page and preserves selection by identity after reordering', async () => {
+  const user = userEvent.setup();
+  const data = Array.from({ length: 12 }, (_, i) => ({
+    id: String(i),
+    name: `Item ${i}`,
+    status: 'active',
+  }));
+  const { rerender } = render(<DataTable columns={mockColumns} data={data} />);
+  await user.click(
+    screen.getByRole('checkbox', { name: 'Select all rows on this page' }),
+  );
+  expect(screen.getByRole('toolbar')).toHaveTextContent('10 selected');
+  await user.click(screen.getByRole('button', { name: 'Go to next page' }));
+  expect(
+    screen.getByRole('checkbox', { name: 'Select row 11' }),
+  ).not.toBeChecked();
+  rerender(<DataTable columns={mockColumns} data={[...data].reverse()} />);
+  expect(screen.getByRole('toolbar')).toHaveTextContent('10 selected');
+  expect(screen.getByRole('checkbox', { name: 'Select row 11' })).toBeChecked();
+});
+
+it('confirms bulk deletion and retains only failed rows for retry', async () => {
+  const user = userEvent.setup();
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const onDeleteRow = vi
+    .fn()
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error('Failed'))
+    .mockResolvedValueOnce(undefined);
+  render(
+    <DataTable
+      columns={mockColumns}
+      data={mockData}
+      onDeleteRow={onDeleteRow}
+    />,
+  );
+  await user.click(
+    screen.getByRole('checkbox', { name: 'Select all rows on this page' }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+  expect(onDeleteRow).not.toHaveBeenCalled();
+  confirm.mockReturnValue(true);
+  await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+  await waitFor(() => expect(onDeleteRow).toHaveBeenCalledTimes(3));
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Could not delete 1 rows',
+  );
+  expect(
+    screen.getByRole('checkbox', { name: 'Select row 1' }),
+  ).not.toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Select row 2' })).toBeChecked();
+  expect(
+    screen.getByRole('checkbox', { name: 'Select row 3' }),
+  ).not.toBeChecked();
+  onDeleteRow.mockResolvedValue(undefined);
+  await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+  await waitFor(() =>
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument(),
+  );
+  expect(onDeleteRow).toHaveBeenLastCalledWith(mockData[1]);
+  confirm.mockRestore();
 });

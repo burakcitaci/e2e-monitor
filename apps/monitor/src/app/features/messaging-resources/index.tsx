@@ -74,18 +74,6 @@ export default function MessagingResources() {
     setOpen(true);
   };
 
-  const handleDelete = async (resource: MessagingResource) => {
-    if (!window.confirm(`Delete ${resource.name} from the broker and MongoDB?`))
-      return;
-    try {
-      await deleteMessageResource(resource.id);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Could not delete resource',
-      );
-    }
-  };
-
   return (
     <Page>
       <PageHeader
@@ -102,9 +90,13 @@ export default function MessagingResources() {
       )}
 
       <DataTable
+        tableClassName="[&_th:last-child]:w-px [&_td:last-child]:whitespace-nowrap"
         searchKey="name"
         searchPlaceholder="Search resources..."
-        columns={createColumns(handleEdit, handleDelete)}
+        columns={createColumns()}
+        onEditRow={handleEdit}
+        onDeleteRow={(resource) => deleteMessageResource(resource.id)}
+        deleteDescription="This deletes the selected resources from the broker and MongoDB. This cannot be undone."
         data={messageResources ?? []}
         onAdd={() => {
           resetForm();

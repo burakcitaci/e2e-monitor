@@ -21,6 +21,7 @@ const draft = {
 };
 const policyDraft = {
   name: 'Financing delivery',
+  provider: 'azure',
   namespace: 'local.servicebus',
   sourceService: 'financing-api',
   destinationService: 'orders-consumer',

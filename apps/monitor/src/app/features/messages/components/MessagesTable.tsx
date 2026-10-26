@@ -5,6 +5,7 @@ import type { TrackingMessage } from '@e2e-monitor/entities';
 import { createColumns } from './Columns';
 import { useNavigate } from 'react-router';
 import { messageDetailPath } from '../message-presentation';
+import { useDeleteTrackingMessage } from '../../../hooks/api/tracking-messages';
 
 export const MessagesTable = ({
   messages,
@@ -12,6 +13,7 @@ export const MessagesTable = ({
   messages: TrackingMessage[] | undefined;
 }) => {
   const navigate = useNavigate();
+  const deleteMessage = useDeleteTrackingMessage();
   const safeMessages = React.useMemo(() => messages ?? [], [messages]);
   const publishers = React.useMemo(
     () =>
@@ -42,6 +44,7 @@ export const MessagesTable = ({
         searchKey="body"
         searchPlaceholder="Search message body..."
         onRowClick={(message) => navigate(messageDetailPath(message))}
+        onDeleteRow={(message) => deleteMessage.mutateAsync(message._id)}
       />
     </div>
   );

@@ -5,7 +5,12 @@ import { Button } from '../../components/ui/button';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Page, PageHeader, PageState } from '../../components/common/Page';
-import { useCreatePolicy, useDeletePolicy, usePolicies, useUpdatePolicy } from './api/hooks';
+import {
+  useCreatePolicy,
+  useDeletePolicy,
+  usePolicies,
+  useUpdatePolicy,
+} from './api/hooks';
 import { emptyPolicyForm, policyFromForm } from './lib/policy-form';
 import type { Policy } from '../../lib/schemas';
 
@@ -21,7 +26,11 @@ export default function PoliciesPage() {
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      if (editing) await updatePolicy.mutateAsync({ id: editing._id, policy: policyFromForm(form) });
+      if (editing)
+        await updatePolicy.mutateAsync({
+          id: editing._id,
+          policy: policyFromForm(form),
+        });
       else await createPolicy.mutateAsync(policyFromForm(form));
       setForm(emptyPolicyForm);
       setEditing(null);
@@ -62,10 +71,20 @@ export default function PoliciesPage() {
         }}
       />
       <PolicyTable
+        onDeleteRow={(policy) => deletePolicy.mutateAsync(policy._id)}
         policies={policies}
         onOpen={(id) => navigate(`/policies/${encodeURIComponent(id)}`)}
-        onEdit={(policy) => { setEditing(policy); setForm({ ...policy, thresholdSeconds: String(policy.thresholdSeconds), requiredSuccessPercentage: String(policy.requiredSuccessPercentage), evaluationWindowMinutes: String(policy.evaluationWindowMinutes), minimumSampleCount: String(policy.minimumSampleCount) }); setCreateOpen(true); }}
-        onDelete={async (policy) => { if (!window.confirm(`Delete policy ${policy.name}?`)) return; try { await deletePolicy.mutateAsync(policy._id); } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not delete policy'); } }}
+        onEdit={(policy) => {
+          setEditing(policy);
+          setForm({
+            ...policy,
+            thresholdSeconds: String(policy.thresholdSeconds),
+            requiredSuccessPercentage: String(policy.requiredSuccessPercentage),
+            evaluationWindowMinutes: String(policy.evaluationWindowMinutes),
+            minimumSampleCount: String(policy.minimumSampleCount),
+          });
+          setCreateOpen(true);
+        }}
       />
     </Page>
   );

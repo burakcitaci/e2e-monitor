@@ -37,7 +37,6 @@ export const MessagesPage = () => {
     <Page>
       <PageHeader
         title="Tracking Messages"
-        description="Follow messages reported by publishers and subscribers."
       />
       <div className="flex flex-col gap-4 w-full flex-1 min-h-0 min-w-0">
         {error && (
@@ -54,14 +53,6 @@ export const MessagesPage = () => {
         )}
 
         <StatisticsCards stats={stats} />
-
-        <p className="text-sm text-muted-foreground">
-          Application reports update automatically. Each observed subscriber has
-          its own delivery row; Complete means that subscriber reported
-          successful broker settlement. External applications own all broker
-          publishing and consumption.
-        </p>
-
         <div className="w-full min-w-0 flex-1 min-h-0">
           <MessagesTable messages={messages as TrackingMessage[]} />
         </div>

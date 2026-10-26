@@ -1,16 +1,11 @@
 import { IconBrandAws, IconBrandAzure } from '@tabler/icons-react';
 import { MessagingResource } from '../lib/entities';
-import { Pencil, Trash2 } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
 
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '../../../components/data-table/DataTableColumnHeader';
 import { Badge } from '../../../components/ui/badge';
 
-export const createColumns = (
-  handleEdit: (resource: MessagingResource) => void,
-  handleDelete: (resource: MessagingResource) => void,
-): ColumnDef<MessagingResource>[] => {
+export const createColumns = (): ColumnDef<MessagingResource>[] => {
   return [
     {
       header: ({ column }) => (
@@ -79,35 +74,14 @@ export const createColumns = (
       },
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Badge variant={row.original.status === 'active' ? 'default' : 'outline'}>
+          <Badge
+            variant={row.original.status === 'active' ? 'default' : 'outline'}
+          >
             {row.original.status}
           </Badge>
           <Badge variant="secondary">
             {row.original.brokerAddress ? 'Synced' : 'Unknown'}
           </Badge>
-        </div>
-      ),
-    },
-    {
-      id: 'actions', // 👈 better than accessorKey for non-data columns
-      cell: ({ row }) => (
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Edit ${row.original.name}`}
-            onClick={() => handleEdit(row.original)}
-          >
-            <Pencil className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={`Delete ${row.original.name}`}
-            onClick={() => handleDelete(row.original)}
-          >
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
         </div>
       ),
     },
